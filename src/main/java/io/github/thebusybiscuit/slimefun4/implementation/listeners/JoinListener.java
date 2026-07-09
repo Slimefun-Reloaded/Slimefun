@@ -29,7 +29,7 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onJoin(@Nonnull PlayerJoinEvent e) {
-        PlayerProfile.get(e.getPlayer(), playerProfile -> {
+        PlayerProfile.get(e.getPlayer(), playerProfile -> Slimefun.runSync(e.getPlayer(), () -> {
             final ItemStack[] armorContents = e.getPlayer().getInventory().getArmorContents();
             final HashedArmorpiece[] hashedArmorpieces = playerProfile.getArmor();
             for (int i = 0; i < 4; i++) {
@@ -38,7 +38,7 @@ public class JoinListener implements Listener {
                     hashedArmorpieces[i].update(armorPiece, sfArmorPiece);
                 }
             }
-        });
+        }));
     }
 
 }

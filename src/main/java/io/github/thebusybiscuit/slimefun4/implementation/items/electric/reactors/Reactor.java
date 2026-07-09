@@ -333,7 +333,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         boolean explosion = explosionsQueue.contains(l);
 
         if (explosion) {
-            Slimefun.runSync(() -> {
+            Slimefun.runSync(l, () -> {
                 ReactorExplodeEvent event = new ReactorExplodeEvent(l, Reactor.this);
                 Bukkit.getPluginManager().callEvent(event);
 
@@ -349,7 +349,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
     }
 
     private void checkForWaterBlocks(Location l) {
-        Slimefun.runSync(() -> {
+        Slimefun.runSync(l, () -> {
             /*
              * We will pick a surrounding block at random and see if this is water.
              * If it isn't, then we will make it explode.

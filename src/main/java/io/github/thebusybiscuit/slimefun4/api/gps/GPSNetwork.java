@@ -225,7 +225,7 @@ public class GPSNetwork {
     }
 
     public void openWaypointControlPanel(@Nonnull Player p) {
-        PlayerProfile.get(p, profile -> {
+        PlayerProfile.get(p, profile -> Slimefun.runSync(p, () -> {
             ChestMenu menu = new ChestMenu(ChatColor.BLUE + Slimefun.getLocalization().getMessage(p, "machines.GPS_CONTROL_PANEL.title"));
 
             for (int slot : border) {
@@ -267,7 +267,7 @@ public class GPSNetwork {
             }
 
             menu.open(p);
-        });
+        }));
     }
 
     /**
@@ -283,7 +283,7 @@ public class GPSNetwork {
         Validate.notNull(p, "Player cannot be null!");
         Validate.notNull(l, "Waypoint Location cannot be null!");
 
-        PlayerProfile.get(p, profile -> {
+        PlayerProfile.get(p, profile -> Slimefun.runSync(p, () -> {
             if ((profile.getWaypoints().size() + 2) > inventory.length) {
                 Slimefun.getLocalization().sendMessage(p, "gps.waypoint.max", true);
                 return;
@@ -293,7 +293,7 @@ public class GPSNetwork {
             SoundEffect.GPS_NETWORK_CREATE_WAYPOINT.playFor(p);
 
             ChatInput.waitForPlayer(Slimefun.instance(), p, message -> addWaypoint(p, message, l));
-        });
+        }));
     }
 
     /**
@@ -311,33 +311,31 @@ public class GPSNetwork {
         Validate.notNull(name, "Waypoint name cannot be null!");
         Validate.notNull(l, "Waypoint Location cannot be null!");
 
-        PlayerProfile.get(p, profile -> {
+        PlayerProfile.get(p, profile -> Slimefun.runSync(p, () -> {
             if ((profile.getWaypoints().size() + 2) > inventory.length) {
                 Slimefun.getLocalization().sendMessage(p, "gps.waypoint.max", true);
                 return;
             }
 
-            Slimefun.runSync(() -> {
-                WaypointCreateEvent event = new WaypointCreateEvent(p, name, l);
-                Bukkit.getPluginManager().callEvent(event);
+            WaypointCreateEvent event = new WaypointCreateEvent(p, name, l);
+            Bukkit.getPluginManager().callEvent(event);
 
-                if (!event.isCancelled()) {
-                    String id = ChatColor.stripColor(ChatColors.color(event.getName())).toUpperCase(Locale.ROOT).replace(' ', '_');
+            if (!event.isCancelled()) {
+                String id = ChatColor.stripColor(ChatColors.color(event.getName())).toUpperCase(Locale.ROOT).replace(' ', '_');
 
-                    for (Waypoint wp : profile.getWaypoints()) {
-                        if (wp.getId().equals(id)) {
-                            Slimefun.getLocalization().sendMessage(p, "gps.waypoint.duplicate", true, msg -> msg.replace("%waypoint%", event.getName()));
-                            return;
-                        }
+                for (Waypoint wp : profile.getWaypoints()) {
+                    if (wp.getId().equals(id)) {
+                        Slimefun.getLocalization().sendMessage(p, "gps.waypoint.duplicate", true, msg -> msg.replace("%waypoint%", event.getName()));
+                        return;
                     }
-
-                    profile.addWaypoint(new Waypoint(p.getUniqueId(), id, event.getLocation(), event.getName()));
-
-                    SoundEffect.GPS_NETWORK_ADD_WAYPOINT.playFor(p);
-                    Slimefun.getLocalization().sendMessage(p, "gps.waypoint.added", true);
                 }
-            });
-        });
+
+                profile.addWaypoint(new Waypoint(p.getUniqueId(), id, event.getLocation(), event.getName()));
+
+                SoundEffect.GPS_NETWORK_ADD_WAYPOINT.playFor(p);
+                Slimefun.getLocalization().sendMessage(p, "gps.waypoint.added", true);
+            }
+        }));
     }
 
     /**

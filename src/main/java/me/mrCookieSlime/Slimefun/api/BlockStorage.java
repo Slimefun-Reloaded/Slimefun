@@ -762,8 +762,8 @@ public class BlockStorage {
 
     @Nullable
     public static String checkID(@Nonnull Block b) {
-        // Only access the BlockState when on the main thread
-        if (Bukkit.isPrimaryThread() && Slimefun.getBlockDataService().isTileEntity(b.getType())) {
+        // Only access the BlockState when this thread owns the block's region.
+        if (Slimefun.getScheduler().isOwnedByCurrentRegion(b) && Slimefun.getBlockDataService().isTileEntity(b.getType())) {
             Optional<String> blockData = Slimefun.getBlockDataService().getBlockData(b);
 
             if (blockData.isPresent()) {
@@ -824,7 +824,7 @@ public class BlockStorage {
             for (HumanEntity human : new ArrayList<>(menu.toInventory().getViewers())) {
                 // Prevents "java.lang.IllegalStateException: Asynchronous entity add!"
                 // when closing the inventory while holding an item
-                Slimefun.runSync(human::closeInventory);
+                Slimefun.runSync(human, human::closeInventory);
             }
 
             inventories.get(l).delete(l);

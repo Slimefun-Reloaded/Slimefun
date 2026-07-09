@@ -104,10 +104,10 @@ abstract class AbstractCraftingTable extends MultiBlockMachine {
                 if (output.getItemMeta().getLore().get(line).equals(ChatColors.color("&7ID: <ID>"))) {
                     int target = line;
 
-                    PlayerProfile.get(p, profile -> {
+                    PlayerProfile.get(p, profile -> Slimefun.runSync(p, () -> {
                         int backpackId = profile.createBackpack(size).getId();
                         Slimefun.getBackpackListener().setBackpackId(p, output, target, backpackId);
-                    });
+                    }));
 
                     break;
                 }

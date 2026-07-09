@@ -42,10 +42,10 @@ public abstract class NetherStarReactor extends Reactor {
 
     @Override
     public void extraTick(@Nonnull Location l) {
-        Slimefun.runSync(() -> {
+        Slimefun.runSync(l, () -> {
             for (Entity entity : l.getWorld().getNearbyEntities(l, 5, 5, 5, n -> n instanceof LivingEntity && n.isValid())) {
                 if (entity instanceof LivingEntity livingEntity) {
-                    livingEntity.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
+                    Slimefun.getScheduler().runEntity(livingEntity, () -> livingEntity.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1)));
                 }
             }
         });

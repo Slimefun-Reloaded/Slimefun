@@ -63,7 +63,7 @@ public class SlimefunBowListener implements Listener {
 
     @EventHandler
     public void onArrowHit(ProjectileHitEvent e) {
-        Slimefun.runSync(() -> {
+        Slimefun.runSync(e.getEntity(), () -> {
             if (e.getEntity().isValid() && e.getEntity() instanceof Arrow) {
                 projectiles.remove(e.getEntity().getUniqueId());
             }

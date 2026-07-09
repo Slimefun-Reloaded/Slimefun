@@ -73,7 +73,7 @@ public class RadiationTask extends AbstractArmorTask {
 
             int exposureLevelAfter = RadiationUtils.getExposure(p);
 
-            Slimefun.runSync(() -> {
+            Slimefun.runSync(p, () -> {
                 RadiationDamageEvent event = new RadiationDamageEvent(p, exposureLevelAfter);
                 Bukkit.getPluginManager().callEvent(event);
 

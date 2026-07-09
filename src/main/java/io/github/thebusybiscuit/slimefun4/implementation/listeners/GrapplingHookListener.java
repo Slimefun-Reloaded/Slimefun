@@ -1,10 +1,9 @@
 package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,8 +45,8 @@ public class GrapplingHookListener implements Listener {
 
     private GrapplingHook grapplingHook;
 
-    private final Map<UUID, GrapplingHookEntity> activeHooks = new HashMap<>();
-    private final Set<UUID> invulnerability = new HashSet<>();
+    private final Map<UUID, GrapplingHookEntity> activeHooks = new ConcurrentHashMap<>();
+    private final Set<UUID> invulnerability = ConcurrentHashMap.newKeySet();
 
     public void register(@Nonnull Slimefun plugin, @Nonnull GrapplingHook grapplingHook) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -72,7 +71,7 @@ public class GrapplingHookListener implements Listener {
             return;
         }
 
-        Slimefun.runSync(() -> {
+        Slimefun.runSync(e.getEntity(), () -> {
             if (e.getEntity() instanceof Arrow arrow) {
                 handleGrapplingHook(arrow);
             }
@@ -169,7 +168,7 @@ public class GrapplingHookListener implements Listener {
                 } else {
                     Location l = player.getLocation();
                     l.setY(l.getY() + 0.5);
-                    player.teleport(l);
+                    player.teleportAsync(l);
 
                     double g = -0.08;
                     double d = target.distance(l);
@@ -187,7 +186,7 @@ public class GrapplingHookListener implements Listener {
                 player.setVelocity(velocity);
 
                 hook.remove();
-                Slimefun.runSync(() -> activeHooks.remove(player.getUniqueId()), 20L);
+                Slimefun.getScheduler().runGlobalLater(() -> activeHooks.remove(player.getUniqueId()), 20L);
             }
         }
     }
@@ -204,14 +203,14 @@ public class GrapplingHookListener implements Listener {
         activeHooks.put(uuid, hook);
 
         // To fix issue #253
-        Slimefun.runSync(() -> {
+        Slimefun.getScheduler().runGlobalLater(() -> {
             GrapplingHookEntity entity = activeHooks.get(uuid);
 
             if (entity != null) {
                 Slimefun.getBowListener().getProjectileData().remove(uuid);
                 entity.remove();
 
-                Slimefun.runSync(() -> {
+                Slimefun.getScheduler().runGlobalLater(() -> {
                     activeHooks.remove(uuid);
                     invulnerability.remove(uuid);
                 }, 20L);

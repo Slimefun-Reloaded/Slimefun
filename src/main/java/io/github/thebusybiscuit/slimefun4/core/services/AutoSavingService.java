@@ -7,8 +7,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 
-import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -41,8 +39,8 @@ public class AutoSavingService {
     public void start(@Nonnull Slimefun plugin, int interval) {
         this.interval = interval;
 
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::saveAllPlayers, 2000L, interval * 60L * 20L);
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::saveAllBlocks, 2000L, interval * 60L * 20L);
+        plugin.getScheduler().runAsyncTimer(this::saveAllPlayers, 2000L, interval * 60L * 20L);
+        plugin.getScheduler().runAsyncTimer(this::saveAllBlocks, 2000L, interval * 60L * 20L);
     }
 
     /**
@@ -62,9 +60,7 @@ public class AutoSavingService {
                 players++;
                 profile.save();
 
-                Debug.log(TestCase.PLAYER_PROFILE_DATA, "Saved data for {} ({})",
-                    profile.getPlayer() != null ? profile.getPlayer().getName() : "Unknown", profile.getUUID()
-                );
+                Debug.log(TestCase.PLAYER_PROFILE_DATA, "Saved data for {}", profile.getUUID());
             }
 
             // Remove the PlayerProfile from memory if the player has left the server (marked from removal)
@@ -91,15 +87,11 @@ public class AutoSavingService {
     private void saveAllBlocks() {
         Set<BlockStorage> worlds = new HashSet<>();
 
-        for (World world : Bukkit.getWorlds()) {
-            BlockStorage storage = BlockStorage.getStorage(world);
+        for (BlockStorage storage : Slimefun.getRegistry().getWorlds().values()) {
+            storage.computeChanges();
 
-            if (storage != null) {
-                storage.computeChanges();
-
-                if (storage.getChanges() > 0) {
-                    worlds.add(storage);
-                }
+            if (storage.getChanges() > 0) {
+                worlds.add(storage);
             }
         }
 

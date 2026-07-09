@@ -1,11 +1,12 @@
 package io.github.thebusybiscuit.slimefun4.test.mocks;
 
-import be.seeseemelk.mockbukkit.inventory.InventoryViewMock;
+import org.mockbukkit.mockbukkit.inventory.InventoryViewMock;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MenuType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,7 +30,8 @@ public class InventoryViewWrapper extends InventoryViewMock {
                                  Inventory top,
                                  Inventory bottom,
                                  InventoryType type) {
-        super(player, name, top, bottom, type);
+        super(player, top, bottom, type);
+        setTitle(name);
     }
 
     @Nonnull
@@ -55,5 +57,16 @@ public class InventoryViewWrapper extends InventoryViewMock {
         if (inventory != null) {
             inventory.setItem(convertSlot(slot), item);
         }
+    }
+
+    @Override
+    @Nonnull
+    public MenuType getMenuType() {
+        return getType().getMenuType();
+    }
+
+    @Override
+    public void open() {
+        getPlayer().openInventory(getTopInventory());
     }
 }

@@ -59,10 +59,8 @@ public class PickaxeOfTheSeeker extends SimpleSlimefunItem<ItemUseHandler> imple
                 float yaw = alpha2 > 90 ? (180 - alpha1) : alpha1;
                 float pitch = (float) ((-Math.atan((closest.getY() - 0.5 - p.getLocation().getY()) / Math.sqrt(l * l + w * w))) * 180 / Math.PI);
 
-                // We could teleport them asynchronously here...
-                // But we're only changing the pitch and yaw anyway.
                 Location loc = new Location(p.getWorld(), p.getLocation().getX(), p.getLocation().getY(), p.getLocation().getZ(), yaw, pitch);
-                p.teleport(loc);
+                p.teleportAsync(loc);
             }
 
             damageItem(p, e.getItem());

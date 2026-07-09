@@ -20,7 +20,6 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.block.Block;
-import org.bukkit.scheduler.BukkitScheduler;
 
 import com.google.common.util.concurrent.AtomicDouble;
 
@@ -28,6 +27,7 @@ import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.tasks.TickerTask;
+import io.github.thebusybiscuit.slimefun4.core.services.scheduling.SlimefunScheduler;
 import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
 
 /**
@@ -58,7 +58,7 @@ public class SlimefunProfiler {
 
     /**
      * This is our {@link Thread} pool to evaluate timings data.
-     * We cannot use the {@link BukkitScheduler} here because we need to evaluate
+     * We cannot use the {@link SlimefunScheduler} here because we need to evaluate
      * this data in split seconds.
      * So we cannot simply wait until the next server tick for this.
      */

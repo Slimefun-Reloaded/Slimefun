@@ -1,7 +1,7 @@
 # Update Procedure
 
 Date: 2024-01-15
-Last updated: 2024-01-15
+Last updated: 2026-07-08
 
 ## Goal
 
@@ -9,15 +9,42 @@ This SOP will go over updating Slimefun to the newest Minecraft version, most of
 
 ## Updating
 
-### Updating Bukkit/Spigot
+### Updating Paper/Folia
 
-The first step is just updating Spigot in the pom.xml. This should only be done in 2 cases:
-* There's a new major version (well, MC major - 1.19 -> 1.20 is a major)
-* There was a change within MC or Bukkit/Spigot that broke the API
+Slimefun targets the latest supported Paper API and declares Folia support. We no
+longer maintain compatibility with old Minecraft, Bukkit, or Spigot versions in
+this branch.
 
-To update the Spigot version, you will need to go to the `pom.xml` and find the `spigot.version` property, this will be within the `properties` property. Simply make this the MC version (e.g. `1.20` or in the case of minor `1.20.4`).
+To update the API version, change the `paper.version` property in `pom.xml` to
+the exact Paper API artifact you are targeting. Also update:
 
-Once updated, **make sure to run a build** to check for compilation failures with `mvn clean package -DskipTests=true`. We will go over the tests next.
+* `plugin.yml` `api-version`
+* the Java compiler version in `pom.xml` if Paper requires a newer Java runtime
+* GitHub Actions Java versions
+* `MinecraftVersion` and related tests if the detected Minecraft version changed
+
+Once updated, **make sure to run a build** to check for compilation failures with
+`mvn clean package -DskipTests=true`. We will go over the tests next.
+
+### Folia scheduler rules
+
+Do not use `Bukkit.getScheduler()` for production code. New scheduled work must
+go through `SlimefunScheduler`.
+
+Use these scheduler types:
+
+* `runRegion(...)` for blocks, locations, chunks, world effects, block storage,
+  and tile entities.
+* `runEntity(...)` for players, mobs, item entities, inventories owned by a
+  player interaction, entity removal, and entity state.
+* `runGlobal(...)` only for global server/plugin state with no region or entity
+  owner.
+* `runAsync(...)` only for work that does not call Bukkit/Paper world, entity,
+  or inventory APIs.
+
+Use Paper async APIs where they exist, especially `teleportAsync(...)`. Do not
+use `Bukkit.isPrimaryThread()` as a safety check for region-owned data; use
+`SlimefunScheduler#isOwnedByCurrentRegion(...)`.
 
 ### Updating tests
 
@@ -66,6 +93,8 @@ While the PR is open, make sure to verify the E2E tests are passing, and you sho
 
 **This is only needed in a major version**
 
-In the `e2e-testing.yml` file you will need to update the matrix strategy, please add the latest version of the old major (e.g. if 1.21 came out, add 1.20.x where x is the latest released version). If MC is requiring a new Java version make sure that is updated too in the `latest` version.
+In the `e2e-testing.yml` file you will need to update the matrix strategy to the
+latest supported Paper target. If MC is requiring a new Java version make sure
+that is updated too in the `latest` version.
 
 Once updated, push and re-verify that the E2E tests are still passing.

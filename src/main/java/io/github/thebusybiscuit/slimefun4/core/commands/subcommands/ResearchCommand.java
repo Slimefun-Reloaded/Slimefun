@@ -47,7 +47,7 @@ class ResearchCommand extends SubCommand {
                     Player p = player.get();
 
                     // Getting the PlayerProfile async
-                    PlayerProfile.get(p, profile -> {
+                    PlayerProfile.get(p, profile -> Slimefun.runSync(p, () -> {
                         if (args[2].equalsIgnoreCase("all")) {
                             researchAll(sender, profile, p);
                         } else if (args[2].equalsIgnoreCase("reset")) {
@@ -55,7 +55,7 @@ class ResearchCommand extends SubCommand {
                         } else {
                             giveResearch(sender, p, args[2]);
                         }
-                    });
+                    }));
                 } else {
                     Slimefun.getLocalization().sendMessage(sender, "messages.not-online", true, msg -> msg.replace(PLACEHOLDER_PLAYER, args[1]));
                 }

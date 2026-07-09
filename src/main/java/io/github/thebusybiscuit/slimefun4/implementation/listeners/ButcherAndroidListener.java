@@ -8,6 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -43,8 +44,9 @@ public class ButcherAndroidListener implements Listener {
     public void onDeath(EntityDeathEvent e) {
         if (e.getEntity().hasMetadata(METADATA_KEY)) {
             AndroidInstance obj = (AndroidInstance) e.getEntity().getMetadata(METADATA_KEY).get(0).value();
+            Location location = e.getEntity().getLocation();
 
-            Slimefun.runSync(() -> {
+            Slimefun.runSync(location, () -> {
                 List<ItemStack> items = new ArrayList<>();
 
                 // Collect any nearby dropped items

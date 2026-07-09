@@ -1,15 +1,16 @@
 package io.github.thebusybiscuit.slimefun4.api.events;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.lang.Validate;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 import io.github.thebusybiscuit.slimefun4.api.researches.Research;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
 /**
  * This {@link Event} is called whenever a {@link Player} unlocks a {@link Research}.
@@ -28,7 +29,7 @@ public class ResearchUnlockEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public ResearchUnlockEvent(@Nonnull Player p, @Nonnull Research research) {
-        super(!Bukkit.isPrimaryThread());
+        super(isAsynchronous(p));
 
         Validate.notNull(p, "The Player cannot be null");
         Validate.notNull(research, "Research cannot be null");
@@ -66,6 +67,10 @@ public class ResearchUnlockEvent extends Event implements Cancellable {
     @Override
     public HandlerList getHandlers() {
         return getHandlerList();
+    }
+
+    private static boolean isAsynchronous(@Nullable Player player) {
+        return Slimefun.instance() == null || player == null || !Slimefun.getScheduler().isOwnedByCurrentRegion(player);
     }
 
 }

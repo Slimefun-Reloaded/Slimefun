@@ -19,16 +19,17 @@ import io.github.thebusybiscuit.slimefun4.storage.backend.legacy.LegacyStorage;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.command.Command;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import io.github.bakedlibs.dough.config.Config;
 import io.github.bakedlibs.dough.protection.ProtectionManager;
@@ -58,6 +59,7 @@ import io.github.thebusybiscuit.slimefun4.core.services.UpdaterService;
 import io.github.thebusybiscuit.slimefun4.core.services.github.GitHubService;
 import io.github.thebusybiscuit.slimefun4.core.services.holograms.HologramsService;
 import io.github.thebusybiscuit.slimefun4.core.services.profiler.SlimefunProfiler;
+import io.github.thebusybiscuit.slimefun4.core.services.scheduling.SlimefunScheduler;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundService;
 import io.github.thebusybiscuit.slimefun4.implementation.items.altar.AncientAltar;
 import io.github.thebusybiscuit.slimefun4.implementation.items.altar.AncientPedestal;
@@ -129,7 +131,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.tasks.armor.SolarHelmet
 import io.github.thebusybiscuit.slimefun4.integrations.IntegrationsManager;
 import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
-import io.papermc.lib.PaperLib;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.MenuListener;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.UniversalBlockMenu;
@@ -147,7 +149,7 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
      * This does not necessarily mean that it's the minimum version
      * required to run Slimefun.
      */
-    private static final int RECOMMENDED_JAVA_VERSION = 17;
+    private static final int RECOMMENDED_JAVA_VERSION = 25;
 
     /**
      * Our static instance of {@link Slimefun}.
@@ -185,6 +187,7 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
     private final HologramsService hologramsService = new HologramsService(this);
     private final SoundService soundService = new SoundService(this);
     private final ThreadService threadService = new ThreadService(this);
+    private final SlimefunScheduler scheduler = new SlimefunScheduler(this);
     private final AnalyticsService analyticsService = new AnalyticsService(this);
 
     // Some other things we need
@@ -218,7 +221,8 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
 
         // Check that we got loaded by MockBukkit rather than Bukkit's loader
         // TODO: This is very much a hack and we can hopefully move to a more native way in the future
-        if (getClassLoader().getClass().getPackageName().startsWith("be.seeseemelk.mockbukkit")) {
+        String classLoaderPackage = getClassLoader().getClass().getPackageName();
+        if (classLoaderPackage.startsWith("be.seeseemelk.mockbukkit") || classLoaderPackage.startsWith("org.mockbukkit.mockbukkit")) {
             minecraftVersion = MinecraftVersion.UNIT_TEST;
         }
     }
@@ -264,12 +268,7 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         long timestamp = System.nanoTime();
         Logger logger = getLogger();
 
-        // Check if Paper (<3) is installed
-        if (PaperLib.isPaper()) {
-            logger.log(Level.INFO, "Paper was detected! Performance optimizations have been applied.");
-        } else {
-            PaperLib.suggestPaper(this);
-        }
+        logger.log(Level.INFO, "{0} was detected! Paper/Folia optimizations have been applied.", Bukkit.getName());
 
         // Check if CS-CoreLib is installed (it is no longer needed)
         if (getServer().getPluginManager().getPlugin("CS-CoreLib") != null) {
@@ -314,7 +313,7 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         logger.log(Level.INFO, "Using legacy storage for player data");
 
         // Setting up bStats and analytics
-        new Thread(metricsService::start, "Slimefun Metrics").start();
+        scheduler.runAsync(metricsService::start);
         analyticsService.start();
 
         // Starting the Auto-Updater
@@ -409,12 +408,18 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
     @Override
     public void onDisable() {
         // Slimefun never loaded successfully, so we don't even bother doing stuff here
-        if (instance() == null || minecraftVersion == MinecraftVersion.UNIT_TEST) {
+        if (instance() == null) {
             return;
         }
 
         // Cancel all tasks from this plugin immediately
-        Bukkit.getScheduler().cancelTasks(this);
+        scheduler.cancelAll();
+
+        if (minecraftVersion == MinecraftVersion.UNIT_TEST) {
+            threadService.shutdown();
+            setInstance(null);
+            return;
+        }
 
         // Finishes all started movements/removals of block data
         try {
@@ -455,6 +460,9 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
 
         // Close and unload any resources from our Metrics Service
         metricsService.cleanUp();
+
+        // Stop Slimefun-owned worker threads
+        threadService.shutdown();
 
         // Terminate our Plugin instance
         setInstance(null);
@@ -517,15 +525,16 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
      */
     private boolean isVersionUnsupported() {
         try {
-            // First check if they still use the unsupported CraftBukkit software.
-            if (!PaperLib.isSpigot() && Bukkit.getName().equals("CraftBukkit")) {
+            // Only modern Paper/Folia and compatible forks are supported in this branch.
+            if (Bukkit.getName().equals("CraftBukkit") || Bukkit.getName().equals("Spigot")) {
                 StartupWarnings.invalidServerSoftware(getLogger());
                 return true;
             }
 
             // Now check the actual Version of Minecraft
-            int version = PaperLib.getMinecraftVersion();
-            int patchVersion = PaperLib.getMinecraftPatchVersion();
+            int[] versionParts = parseMinecraftVersion(getServer().getMinecraftVersion());
+            int version = versionParts[0];
+            int patchVersion = versionParts[1];
 
             if (version > 0) {
                 // Check all supported versions of Minecraft
@@ -537,7 +546,7 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
                 }
 
                 // Looks like you are using an unsupported Minecraft Version
-                StartupWarnings.invalidMinecraftVersion(getLogger(), version, getDescription().getVersion());
+                StartupWarnings.invalidMinecraftVersion(getLogger(), getServer().getMinecraftVersion(), getDescription().getVersion());
                 return true;
             } else {
                 getLogger().log(Level.WARNING, "We could not determine the version of Minecraft you were using? ({0})", Bukkit.getVersion());
@@ -556,6 +565,30 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
             // We assume "unsupported" if something went wrong.
             return true;
         }
+    }
+
+    private static int[] parseMinecraftVersion(@Nonnull String minecraftVersion) {
+        String[] parts = minecraftVersion.split("\\.");
+        int versionIndex = parts.length > 1 && parts[0].equals("1") ? 1 : 0;
+        int patchIndex = versionIndex + 1;
+        int version = parseLeadingVersionNumber(parts[versionIndex]);
+        int patchVersion = parts.length > patchIndex ? parseLeadingVersionNumber(parts[patchIndex]) : 0;
+
+        return new int[] { version, patchVersion };
+    }
+
+    private static int parseLeadingVersionNumber(@Nonnull String versionPart) {
+        int length = 0;
+
+        while (length < versionPart.length() && Character.isDigit(versionPart.charAt(length))) {
+            length++;
+        }
+
+        if (length == 0) {
+            throw new NumberFormatException("Could not parse version number from '" + versionPart + '\'');
+        }
+
+        return Integer.parseInt(versionPart.substring(0, length));
     }
 
     /**
@@ -1035,23 +1068,67 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
      * @param delay
      *            The delay for this task
      * 
-     * @return The resulting {@link BukkitTask} or null if Slimefun was disabled
+     * @return The resulting {@link ScheduledTask} or null if Slimefun was disabled
      */
-    public static @Nullable BukkitTask runSync(@Nonnull Runnable runnable, long delay) {
+    public static @Nullable ScheduledTask runSync(@Nonnull Runnable runnable, long delay) {
         Validate.notNull(runnable, "Cannot run null");
         Validate.isTrue(delay >= 0, "The delay cannot be negative");
-
-        // Run the task instantly within a Unit Test
-        if (getMinecraftVersion() == MinecraftVersion.UNIT_TEST) {
-            runnable.run();
-            return null;
-        }
 
         if (instance == null || !instance.isEnabled()) {
             return null;
         }
 
-        return instance.getServer().getScheduler().runTaskLater(instance, runnable, delay);
+        return instance.scheduler.runGlobalLater(runnable, delay);
+    }
+
+    /**
+     * This method schedules a delayed region-owned task for Slimefun.
+     * Use this overload for block or location access on Paper/Folia.
+     *
+     * @param location
+     *            The owning {@link Location}
+     * @param runnable
+     *            The {@link Runnable} to run
+     * @param delay
+     *            The delay for this task
+     *
+     * @return The resulting {@link ScheduledTask} or null if Slimefun was disabled
+     */
+    public static @Nullable ScheduledTask runSync(@Nonnull Location location, @Nonnull Runnable runnable, long delay) {
+        Validate.notNull(location, "Cannot run without a location");
+        Validate.notNull(runnable, "Cannot run null");
+        Validate.isTrue(delay >= 0, "The delay cannot be negative");
+
+        if (instance == null || !instance.isEnabled()) {
+            return null;
+        }
+
+        return instance.scheduler.runRegionLater(location, runnable, delay);
+    }
+
+    /**
+     * This method schedules a delayed entity-owned task for Slimefun.
+     * Use this overload for player or entity access on Paper/Folia.
+     *
+     * @param entity
+     *            The owning {@link Entity}
+     * @param runnable
+     *            The {@link Runnable} to run
+     * @param delay
+     *            The delay for this task
+     *
+     * @return The resulting {@link ScheduledTask} or null if Slimefun was disabled
+     */
+    public static @Nullable ScheduledTask runSync(@Nonnull Entity entity, @Nonnull Runnable runnable, long delay) {
+        Validate.notNull(entity, "Cannot run without an entity");
+        Validate.notNull(runnable, "Cannot run null");
+        Validate.isTrue(delay >= 0, "The delay cannot be negative");
+
+        if (instance == null || !instance.isEnabled()) {
+            return null;
+        }
+
+        return instance.scheduler.runEntityLater(entity, runnable, delay);
     }
 
     /**
@@ -1064,22 +1141,24 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
      * @param runnable
      *            The {@link Runnable} to run
      * 
-     * @return The resulting {@link BukkitTask} or null if Slimefun was disabled
+     * @return The resulting {@link ScheduledTask} or null if Slimefun was disabled
      */
-    public static @Nullable BukkitTask runSync(@Nonnull Runnable runnable) {
+    public static @Nullable ScheduledTask runSync(@Nonnull Runnable runnable) {
         Validate.notNull(runnable, "Cannot run null");
-
-        // Run the task instantly within a Unit Test
-        if (getMinecraftVersion() == MinecraftVersion.UNIT_TEST) {
-            runnable.run();
-            return null;
-        }
 
         if (instance == null || !instance.isEnabled()) {
             return null;
         }
 
-        return instance.getServer().getScheduler().runTask(instance, runnable);
+        return instance.scheduler.runGlobal(runnable);
+    }
+
+    public static @Nullable ScheduledTask runSync(@Nonnull Location location, @Nonnull Runnable runnable) {
+        return runSync(location, runnable, 0L);
+    }
+
+    public static @Nullable ScheduledTask runSync(@Nonnull Entity entity, @Nonnull Runnable runnable) {
+        return runSync(entity, runnable, 0L);
     }
 
     public static @Nonnull Storage getPlayerStorage() {
@@ -1094,5 +1173,9 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
      */
     public static @Nonnull ThreadService getThreadService() {
         return instance().threadService;
+    }
+
+    public static @Nonnull SlimefunScheduler getScheduler() {
+        return instance().scheduler;
     }
 }

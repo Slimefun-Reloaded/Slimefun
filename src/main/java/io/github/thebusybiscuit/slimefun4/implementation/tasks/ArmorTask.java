@@ -75,21 +75,23 @@ public class ArmorTask implements Runnable {
     @Override
     public void run() {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.isValid() || p.isDead()) {
-                continue;
-            }
-
-            PlayerProfile.get(p, profile -> {
-                ItemStack[] armor = p.getInventory().getArmorContents();
-                HashedArmorpiece[] cachedArmor = profile.getArmor();
-
-                handleSlimefunArmor(p, armor, cachedArmor);
-
-                if (hasSunlight(p)) {
-                    checkForSolarHelmet(p);
+            Slimefun.getScheduler().runEntity(p, () -> {
+                if (!p.isValid() || p.isDead()) {
+                    return;
                 }
 
-                checkForRadiation(p, profile);
+                PlayerProfile.get(p, profile -> Slimefun.runSync(p, () -> {
+                    ItemStack[] armor = p.getInventory().getArmorContents();
+                    HashedArmorpiece[] cachedArmor = profile.getArmor();
+
+                    handleSlimefunArmor(p, armor, cachedArmor);
+
+                    if (hasSunlight(p)) {
+                        checkForSolarHelmet(p);
+                    }
+
+                    checkForRadiation(p, profile);
+                }));
             });
         }
     }
@@ -112,7 +114,7 @@ public class ArmorTask implements Runnable {
             }
 
             if (item != null && armorpiece.getItem().isPresent()) {
-                Slimefun.runSync(() -> {
+                Slimefun.runSync(p, () -> {
                     SlimefunArmorPiece slimefunArmor = armorpiece.getItem().get();
 
                     if (slimefunArmor.canUse(p, true)) {
@@ -175,7 +177,7 @@ public class ArmorTask implements Runnable {
                 // If the item is enabled in the world, then make radioactivity do its job
                 Slimefun.getLocalization().sendMessage(p, "messages.radiation");
 
-                Slimefun.runSync(() -> {
+                Slimefun.runSync(p, () -> {
                     p.addPotionEffects(radiationEffects);
 
                     // if radioactive fire is enabled, set them on fire

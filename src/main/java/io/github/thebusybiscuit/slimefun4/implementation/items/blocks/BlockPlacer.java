@@ -35,8 +35,6 @@ import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.handlers.VanillaInventoryDropHandler;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
-import io.papermc.lib.PaperLib;
-import io.papermc.lib.features.blockstatesnapshot.BlockStateSnapshotResult;
 
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 
@@ -220,15 +218,8 @@ public class BlockPlacer extends SlimefunItem {
                     ItemMeta meta = item.getItemMeta();
 
                     if (meta.hasDisplayName()) {
-                        BlockStateSnapshotResult blockState = PaperLib.getBlockState(facedBlock, false);
-
-                        if (blockState.getState() instanceof Nameable nameable) {
+                        if (facedBlock.getState(false) instanceof Nameable nameable) {
                             nameable.setCustomName(meta.getDisplayName());
-
-                            if (blockState.isSnapshot()) {
-                                // Update block state after changing name
-                                blockState.getState().update(true, false);
-                            }
                         }
                     }
 
@@ -240,7 +231,7 @@ public class BlockPlacer extends SlimefunItem {
     @ParametersAreNonnullByDefault
     private void schedulePlacement(Block b, Inventory inv, ItemStack item, Runnable runnable) {
         // We need to delay this due to Dispenser-Inventory synchronization issues in Spigot.
-        Slimefun.runSync(() -> {
+        Slimefun.runSync(b.getLocation(), () -> {
             // Make sure the Block has not been occupied yet
             if (b.isEmpty()) {
                 // Only remove 1 item.

@@ -30,7 +30,6 @@ import io.github.bakedlibs.dough.scheduling.TaskQueue;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedParticle;
-import io.papermc.lib.PaperLib;
 
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineFuel;
 
@@ -209,7 +208,7 @@ class MiningTask implements Runnable {
                         ores++;
 
                         // Repeat the same column when we hit an ore.
-                        Slimefun.runSync(this, 4);
+                        Slimefun.runSync(chest.getLocation(), this, 4);
                         return;
                     }
                 }
@@ -247,7 +246,7 @@ class MiningTask implements Runnable {
             return;
         }
 
-        Slimefun.runSync(this, 5);
+        Slimefun.runSync(chest.getLocation(), this, 5);
     }
 
     /**
@@ -268,7 +267,7 @@ class MiningTask implements Runnable {
         // Check if there is enough fuel to run
         if (fuelLevel > 0) {
             if (chest.getType() == Material.CHEST) {
-                BlockState state = PaperLib.getBlockState(chest, false).getState();
+                BlockState state = chest.getState(false);
 
                 if (state instanceof Chest chestState) {
                     Inventory inv = chestState.getBlockInventory();
@@ -299,7 +298,7 @@ class MiningTask implements Runnable {
      */
     private void consumeFuel() {
         if (chest.getType() == Material.CHEST) {
-            BlockState state = PaperLib.getBlockState(chest, false).getState();
+            BlockState state = chest.getState(false);
 
             if (state instanceof Chest chestState) {
                 Inventory inv = chestState.getBlockInventory();

@@ -15,7 +15,6 @@ import io.github.thebusybiscuit.slimefun4.core.commands.SlimefunCommand;
 import io.github.thebusybiscuit.slimefun4.core.commands.SubCommand;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
-import io.papermc.lib.PaperLib;
 
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -36,13 +35,13 @@ class VersionsCommand extends SubCommand {
      * This is the Java version we recommend to use.
      * Bump as necessary and adjust the warning.
      */
-    private static final int RECOMMENDED_JAVA_VERSION = 16;
+    private static final int RECOMMENDED_JAVA_VERSION = 25;
 
     /**
      * This is the notice that will be displayed when an
      * older version of Java is detected.
      */
-    private static final String JAVA_VERSION_NOTICE = "As of Minecraft 1.17 Java 16 will be required!";
+    private static final String JAVA_VERSION_NOTICE = "Paper/Folia 26.1.2 requires Java 25 or newer.";
 
     @ParametersAreNonnullByDefault
     VersionsCommand(Slimefun plugin, SlimefunCommand cmd) {
@@ -52,17 +51,12 @@ class VersionsCommand extends SubCommand {
     @Override
     public void onExecute(@Nonnull CommandSender sender, @Nonnull String[] args) {
         if (sender.hasPermission("slimefun.command.versions") || sender instanceof ConsoleCommandSender) {
-            /*
-             * After all these years... Spigot still displays as "CraftBukkit".
-             * so we will just fix this inconsistency for them :)
-             */
-            String serverSoftware = PaperLib.isSpigot() && !PaperLib.isPaper() ? "Spigot" : Bukkit.getName();
             ComponentBuilder builder = new ComponentBuilder();
 
             // @formatter:off
             builder.append("This Server uses the following setup of Slimefun:\n")
                 .color(ChatColor.GRAY)
-                .append(serverSoftware)
+                .append(Bukkit.getName())
                 .color(ChatColor.GREEN)
                 .append(" " + Bukkit.getVersion() + '\n')
                 .color(ChatColor.DARK_GREEN);

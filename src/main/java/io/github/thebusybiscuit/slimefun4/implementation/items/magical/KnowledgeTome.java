@@ -64,11 +64,11 @@ public class KnowledgeTome extends SimpleSlimefunItem<ItemUseHandler> {
                     return;
                 }
 
-                PlayerProfile.get(p, profile -> PlayerProfile.fromUUID(uuid, owner -> {
+                PlayerProfile.get(p, profile -> PlayerProfile.fromUUID(uuid, owner -> Slimefun.runSync(p, () -> {
                     for (Research research : owner.getResearches()) {
                         research.unlock(p, true);
                     }
-                }));
+                })));
 
                 if (p.getGameMode() != GameMode.CREATIVE) {
                     ItemUtils.consumeItem(item, false);
