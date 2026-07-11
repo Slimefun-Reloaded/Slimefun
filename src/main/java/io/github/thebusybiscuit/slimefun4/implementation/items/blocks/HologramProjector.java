@@ -124,7 +124,7 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
             double offset = NumberUtils.reparseDouble(Double.valueOf(BlockStorage.getLocationInfo(projector.getLocation(), OFFSET_PARAMETER)) + (action.isRightClicked() ? -0.1F : 0.1F));
             ArmorStand hologram = getArmorStand(projector, true);
             Location l = new Location(projector.getWorld(), projector.getX() + 0.5, projector.getY() + offset, projector.getZ() + 0.5);
-            hologram.teleport(l);
+            Slimefun.getScheduler().runEntity(hologram, () -> hologram.teleportAsync(l));
 
             BlockStorage.addBlockInfo(projector, OFFSET_PARAMETER, String.valueOf(offset));
             openEditor(pl, projector);

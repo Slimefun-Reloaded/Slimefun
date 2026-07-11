@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -69,10 +68,10 @@ public class GitHubService {
     public void start(@Nonnull Slimefun plugin) {
         loadConnectors(false);
 
-        long period = TimeUnit.HOURS.toMillis(1);
+        long period = 60L * 60L * 20L;
         GitHubTask task = new GitHubTask(this);
 
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, task, 30 * 20L, period);
+        plugin.getScheduler().runAsyncTimer(task, 30 * 20L, period);
     }
 
     /**

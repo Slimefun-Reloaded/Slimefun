@@ -95,7 +95,7 @@ public class IntegrationsManager {
         onServerLoad();
 
         // Load any integrations which aren't dependencies (loadBefore)
-        plugin.getServer().getScheduler().runTask(plugin, this::onServerStart);
+        plugin.getScheduler().runGlobal(this::onServerStart);
     }
 
     /**

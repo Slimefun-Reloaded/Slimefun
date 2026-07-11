@@ -8,7 +8,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.inventory.Inventory;
@@ -19,6 +18,7 @@ import org.bukkit.inventory.RecipeChoice.MaterialChoice;
 import io.github.bakedlibs.dough.collections.LoopIterator;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.guide.SurvivalSlimefunGuide;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * A {@link AsyncRecipeChoiceTask} is an asynchronously repeating task that cycles
@@ -38,7 +38,7 @@ public class AsyncRecipeChoiceTask implements Runnable {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     private Inventory inventory;
-    private int id;
+    private ScheduledTask task;
 
     /**
      * This will start this task for the given {@link Inventory}.
@@ -50,7 +50,7 @@ public class AsyncRecipeChoiceTask implements Runnable {
         Validate.notNull(inv, "Inventory must not be null");
 
         inventory = inv;
-        id = Bukkit.getScheduler().runTaskTimerAsynchronously(Slimefun.instance(), this, 0, UPDATE_INTERVAL).getTaskId();
+        task = Slimefun.getScheduler().runGlobalTimer(this, 0, UPDATE_INTERVAL);
     }
 
     public void add(int slot, @Nonnull MaterialChoice choice) {
@@ -110,7 +110,9 @@ public class AsyncRecipeChoiceTask implements Runnable {
     public void run() {
         // Terminate the task when noone is viewing the Inventory
         if (inventory.getViewers().isEmpty()) {
-            Bukkit.getScheduler().cancelTask(id);
+            if (task != null) {
+                task.cancel();
+            }
             return;
         }
 

@@ -25,7 +25,6 @@ import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.backpacks.SlimefunBackpack;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
-import io.papermc.lib.PaperLib;
 
 public class MagicWorkbench extends AbstractCraftingTable {
 
@@ -43,7 +42,7 @@ public class MagicWorkbench extends AbstractCraftingTable {
             return;
         }
 
-        BlockState state = PaperLib.getBlockState(possibleDispener, false).getState();
+        BlockState state = possibleDispener.getState(false);
 
         if (state instanceof Dispenser dispenser) {
             Inventory inv = dispenser.getInventory();
@@ -102,7 +101,7 @@ public class MagicWorkbench extends AbstractCraftingTable {
     private void startAnimation(Player p, Block b, Inventory dispInv, Block dispenser, ItemStack output) {
         for (int j = 0; j < 4; j++) {
             int current = j;
-            Slimefun.runSync(() -> {
+            Slimefun.runSync(b.getLocation(), () -> {
                 p.getWorld().playEffect(b.getLocation(), Effect.MOBSPAWNER_FLAMES, 1);
                 p.getWorld().playEffect(b.getLocation(), Effect.ENDER_SIGNAL, 1);
 

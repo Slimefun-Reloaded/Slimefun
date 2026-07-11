@@ -19,6 +19,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.settings.DoubleRangeSetting;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.handlers.VanillaInventoryDropHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
@@ -84,8 +85,10 @@ public class InfusedHopper extends SimpleSlimefunItem<BlockTicker> {
 
                 // Check for any nearby Items that can be picked up
                 for (Entity item : b.getWorld().getNearbyEntities(l, range, range, range, n -> isValidItem(l, n))) {
-                    item.setVelocity(new Vector(0, 0.1, 0));
-                    item.teleport(l);
+                    Slimefun.getScheduler().runEntity(item, () -> {
+                        item.setVelocity(new Vector(0, 0.1, 0));
+                        item.teleportAsync(l);
+                    });
                     playSound = true;
                 }
 

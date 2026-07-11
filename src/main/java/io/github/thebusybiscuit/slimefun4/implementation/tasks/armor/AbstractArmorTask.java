@@ -28,11 +28,13 @@ public abstract class AbstractArmorTask implements Runnable {
     @Override
     public final void run() {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.isValid() || p.isDead()) {
-                continue;
-            }
+            Slimefun.getScheduler().runEntity(p, () -> {
+                if (!p.isValid() || p.isDead()) {
+                    return;
+                }
 
-            PlayerProfile.get(p, profile -> onPlayerTick(p, profile));
+                PlayerProfile.get(p, profile -> Slimefun.getScheduler().runEntity(p, () -> onPlayerTick(p, profile)));
+            });
         }
 
         onTick();
@@ -54,7 +56,7 @@ public abstract class AbstractArmorTask implements Runnable {
             plugin.getLogger().log(Level.WARNING, "The interval for {0} is misconfigured! Received {1}, expected at least 1.", new Object[] { getClass().getSimpleName(), tickInterval });
         }
 
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this, 0L, tickInterval);
+        plugin.getScheduler().runGlobalTimer(this, 0L, tickInterval);
     }
 
     /**

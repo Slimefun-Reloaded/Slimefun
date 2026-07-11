@@ -21,16 +21,17 @@
         <!-- UTF-8 is our standard encoding for source files -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Target Java 16 -->
-        <maven.compiler.source>16</maven.compiler.source>
-        <maven.compiler.target>16</maven.compiler.target>
-        <!-- Run tests using java 21 -->
-        <maven.compiler.testSource>21</maven.compiler.testSource>
-        <maven.compiler.testTarget>21</maven.compiler.testTarget>
+        <!-- Folia 26.x targets the latest Java runtime. -->
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.testSource>25</maven.compiler.testSource>
+        <maven.compiler.testTarget>25</maven.compiler.testTarget>
 
-        <!-- Spigot properties -->
-        <paper.version>1.21.1</paper.version>
-        <paper.javadocs>https://hub.spigotmc.org/javadocs/spigot/</paper.javadocs>
+        <!-- Paper properties -->
+        <paper.version>26.1.2.build.74-stable</paper.version>
+        <paper.javadocs>https://jd.papermc.io/paper/</paper.javadocs>
+        <mockito.version>5.23.0</mockito.version>
+        <byte-buddy.version>1.18.11</byte-buddy.version>
 
         <!-- Default settings for sonarcloud.io -->
         <sonar.projectKey>Slimefun_Slimefun4</sonar.projectKey>
@@ -59,12 +60,12 @@
     <!-- Well, any that aren't found on maven-central. -->
     <repositories>
         <repository>
-            <!-- Spigot-API -->
+            <!-- Legacy transitive dependencies -->
             <id>spigot-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots</url>
         </repository>
         <repository>
-            <!-- PaperLib -->
+            <!-- Paper API -->
             <id>paper-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
@@ -153,6 +154,7 @@
 
                 <configuration>
                     <junitArtifactName>org.junit.jupiter:junit-jupiter</junitArtifactName>
+                    <argLine>@{argLine} -javaagent:${settings.localRepository}/net/bytebuddy/byte-buddy-agent/${byte-buddy.version}/byte-buddy-agent-${byte-buddy.version}.jar -Dnet.bytebuddy.experimental=true</argLine>
                     <trimStackTrace>false</trimStackTrace>
                 </configuration>
             </plugin>
@@ -168,7 +170,7 @@
                 <!-- Code Coverage Reports -->
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.12</version>
+                <version>0.8.15</version>
 
                 <executions>
                     <execution>
@@ -194,7 +196,7 @@
                 <!-- Dependency shading -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.2</version>
 
                 <configuration>
                     <!-- Relocate these to avoid clashes and conflicts -->
@@ -219,6 +221,14 @@
                             <artifact>*:*</artifact>
                             <excludes>
                                 <exclude>META-INF/*</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.github.Slimefun.dough:dough-api</artifact>
+                            <excludes>
+                                <exclude>io/github/bakedlibs/dough/skins/CustomGameProfile.class</exclude>
+                                <exclude>io/github/bakedlibs/dough/skins/PlayerHead.class</exclude>
+                                <exclude>io/github/bakedlibs/dough/versions/MinecraftVersion.class</exclude>
                             </excludes>
                         </filter>
                     </filters>
@@ -250,7 +260,7 @@
                     <additionalJOption>-html5</additionalJOption>
 
                     <links>
-                        <!-- We can reference the Spigot API in our Javadocs -->
+                        <!-- We can reference the Paper API in our Javadocs -->
                         <link>${paper.javadocs}</link>
                     </links>
 
@@ -362,12 +372,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.Slimefun.dough</groupId>
-            <artifactId>dough-api</artifactId>
-            <version>cb22e71335</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>io.papermc</groupId>
             <artifactId>paperlib</artifactId>
             <version>1.0.8</version>
@@ -378,7 +382,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>${paper.version}-R0.1-SNAPSHOT</version>
+            <version>${paper.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -391,7 +395,19 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.15.2</version>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>${byte-buddy.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>${byte-buddy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -400,11 +416,10 @@
             <version>2.0.16</version>
             <scope>test</scope>
         </dependency>
-        <!-- This needs to be before Spigot because MockBukkit will fail otherwise. -->
         <dependency>
-            <groupId>com.github.seeseemelk</groupId>
-            <artifactId>MockBukkit-v1.21</artifactId>
-            <version>3.133.2</version>
+            <groupId>org.mockbukkit.mockbukkit</groupId>
+            <artifactId>mockbukkit-v26.1.2</artifactId>
+            <version>4.114.0</version>
             <scope>test</scope>
 
             <exclusions>

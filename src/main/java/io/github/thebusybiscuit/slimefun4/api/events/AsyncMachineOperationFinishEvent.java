@@ -3,13 +3,13 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.thebusybiscuit.slimefun4.core.machines.MachineOperation;
 import io.github.thebusybiscuit.slimefun4.core.machines.MachineProcessor;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
 /**
  * This {@link Event} is fired whenever an {@link MachineProcessor} has completed a {@link MachineOperation}.
@@ -27,7 +27,7 @@ public class AsyncMachineOperationFinishEvent extends Event {
     private final MachineOperation machineOperation;
 
     public <T extends MachineOperation> AsyncMachineOperationFinishEvent(BlockPosition pos, MachineProcessor<T> processor, T operation) {
-        super(!Bukkit.isPrimaryThread());
+        super(isAsynchronous(pos));
 
         this.position = pos;
         this.machineProcessor = processor;
@@ -73,5 +73,9 @@ public class AsyncMachineOperationFinishEvent extends Event {
     @Override
     public HandlerList getHandlers() {
         return getHandlerList();
+    }
+
+    private static boolean isAsynchronous(@Nullable BlockPosition position) {
+        return Slimefun.instance() == null || position == null || !Slimefun.getScheduler().isOwnedByCurrentRegion(position.toLocation());
     }
 }

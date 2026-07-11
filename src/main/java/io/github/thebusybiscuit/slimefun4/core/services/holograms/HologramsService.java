@@ -12,10 +12,8 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Server;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -86,7 +84,7 @@ public class HologramsService {
      * purge-task.
      */
     public void start() {
-        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, this::purge, PURGE_RATE, PURGE_RATE);
+        Slimefun.getScheduler().runGlobalTimer(this::purge, PURGE_RATE, PURGE_RATE);
     }
 
     /**
@@ -241,7 +239,7 @@ public class HologramsService {
      * This updates the {@link Hologram}.
      * You can use it to set the nametag or other properties.
      * <p>
-     * <strong>This method must be executed on the main {@link Server} {@link Thread}.</strong>
+     * This method is scheduled on the owning region.
      * 
      * @param loc
      *            The {@link Location}
@@ -265,17 +263,13 @@ public class HologramsService {
             }
         };
 
-        if (Bukkit.isPrimaryThread()) {
-            runnable.run();
-        } else {
-            Slimefun.runSync(runnable);
-        }
+        Slimefun.runSync(loc, runnable);
     }
 
     /**
      * This removes the {@link Hologram} at that given {@link Location}.
      * <p>
-     * <strong>This method must be executed on the main {@link Server} {@link Thread}.</strong>
+     * This method is scheduled on the owning region.
      * 
      * @param loc
      *            The {@link Location}
@@ -286,24 +280,25 @@ public class HologramsService {
     public boolean removeHologram(@Nonnull Location loc) {
         Validate.notNull(loc, "Location cannot be null");
 
-        if (Bukkit.isPrimaryThread()) {
-            try {
-                Hologram hologram = getHologram(loc, false);
+        Slimefun.runSync(loc, () -> removeHologramNow(loc));
+        return true;
+    }
 
-                if (hologram != null) {
-                    cache.remove(new BlockPosition(loc));
-                    hologram.remove();
-                    return true;
-                } else {
-                    return false;
-                }
-            } catch (Exception | LinkageError x) {
-                Slimefun.logger().log(Level.SEVERE, "Hologram located at {0}", new BlockPosition(loc));
-                Slimefun.logger().log(Level.SEVERE, "Something went wrong while trying to remove this hologram", x);
+    private boolean removeHologramNow(@Nonnull Location loc) {
+        try {
+            Hologram hologram = getHologram(loc, false);
+
+            if (hologram != null) {
+                cache.remove(new BlockPosition(loc));
+                hologram.remove();
+                return true;
+            } else {
                 return false;
             }
-        } else {
-            throw new UnsupportedOperationException("You cannot remove a hologram asynchronously.");
+        } catch (Exception | LinkageError x) {
+            Slimefun.logger().log(Level.SEVERE, "Hologram located at {0}", new BlockPosition(loc));
+            Slimefun.logger().log(Level.SEVERE, "Something went wrong while trying to remove this hologram", x);
+            return false;
         }
     }
 

@@ -9,7 +9,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitScheduler;
+
+import io.github.thebusybiscuit.slimefun4.core.services.scheduling.SlimefunScheduler;
 
 public final class ThreadService {
 
@@ -37,10 +38,9 @@ public final class ThreadService {
     /**
      * Invoke a new thread from the cached thread pool with the given name.
      * This is a much better alternative to using
-     * {@link BukkitScheduler#runTaskAsynchronously(org.bukkit.plugin.Plugin, Runnable)}
+     * {@link SlimefunScheduler#runAsync(Runnable)}
      * as this will show not only the plugin but a useful name.
-     * By default, Bukkit will use "Craft Scheduler Thread - {@literal <x>} - {@literal <plugin>}" which is nice to show the plugin but
-     * it's impossible to track exactly what thread that is.
+     * Scheduler-managed async work is still preferred for plugin lifecycle-bound tasks.
      *
      * @param plugin The {@link JavaPlugin} that is creating this thread
      * @param name The name of this thread, this will be prefixed with the plugin's name
@@ -58,10 +58,9 @@ public final class ThreadService {
     /**
      * Invoke a new scheduled thread from the cached thread pool with the given name.
      * This is a much better alternative to using
-     * {@link BukkitScheduler#runTaskTimerAsynchronously(org.bukkit.plugin.Plugin, Runnable, long, long)}
+     * {@link SlimefunScheduler#runAsyncTimer(Runnable, long, long)}
      * as this will show not only the plugin but a useful name.
-     * By default, Bukkit will use "Craft Scheduler Thread - {@literal <x>} - {@literal <plugin>}" which is nice to show the plugin but
-     * it's impossible to track exactly what thread that is.
+     * Scheduler-managed async work is still preferred for plugin lifecycle-bound tasks.
      *
      * @param plugin The {@link JavaPlugin} that is creating this thread
      * @param name The name of this thread, this will be prefixed with the plugin's name
@@ -81,6 +80,11 @@ public final class ThreadService {
             Thread.currentThread().setName(plugin.getName() + " - " + name);
             runnable.run();
         }, delay, delay, unit);
+    }
+
+    public void shutdown() {
+        cachedPool.shutdownNow();
+        scheduledPool.shutdownNow();
     }
 
     /**

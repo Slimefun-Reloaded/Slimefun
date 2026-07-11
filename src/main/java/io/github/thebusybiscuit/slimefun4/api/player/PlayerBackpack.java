@@ -3,15 +3,15 @@ package io.github.thebusybiscuit.slimefun4.api.player;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Bukkit;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -155,11 +155,9 @@ public class PlayerBackpack {
      *            The players who this Backpack will be shown to
      */
     public void open(Player... players) {
-        Slimefun.runSync(() -> {
-            for (Player p : players) {
-                p.openInventory(inventory);
-            }
-        });
+        for (Player p : players) {
+            Slimefun.runSync(p, () -> p.openInventory(inventory));
+        }
     }
 
     /**
@@ -173,14 +171,27 @@ public class PlayerBackpack {
     public CompletableFuture<Void> closeForAll() {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        Slimefun.runSync(() -> {
-            Iterator<HumanEntity> iterator = new ArrayList<>(inventory.getViewers()).iterator();
+        Slimefun.getScheduler().runGlobal(() -> {
+            List<Player> viewers = new ArrayList<>(Bukkit.getOnlinePlayers());
 
-            while (iterator.hasNext()) {
-                iterator.next().closeInventory();
+            if (viewers.isEmpty()) {
+                future.complete(null);
+                return;
             }
 
-            future.complete(null);
+            AtomicInteger remaining = new AtomicInteger(viewers.size());
+
+            for (Player viewer : viewers) {
+                Slimefun.runSync(viewer, () -> {
+                    if (inventory.equals(viewer.getOpenInventory().getTopInventory())) {
+                        viewer.closeInventory();
+                    }
+
+                    if (remaining.decrementAndGet() == 0) {
+                        future.complete(null);
+                    }
+                });
+            }
         });
 
         return future;

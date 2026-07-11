@@ -7,30 +7,27 @@ on:
         description: 'Slimefun artifact name'
         required: true
         type: string
+      server-project:
+        description: 'PaperMC project to run for the smoke test'
+        required: false
+        type: string
+        default: folia
+      server-version:
+        description: 'Minecraft/Folia/Paper server version to test'
+        required: false
+        type: string
+        default: '26.1.2'
+      java-version:
+        description: 'Java runtime version'
+        required: false
+        type: string
+        default: '25'
 
 jobs:
   e2e-testing:
-    name: End to End Testing
+    name: End to End Testing (${{ inputs.server-project }} ${{ inputs.server-version }}, Java ${{ inputs.java-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
-    strategy:
-      matrix:
-        include:
-          - mcVersion: '1.16.5'
-            javaVersion: '16'
-          - mcVersion: '1.17.1'
-            javaVersion: '17'
-          - mcVersion: '1.18.2'
-            javaVersion: '18'
-          - mcVersion: '1.19.4'
-            javaVersion: '19'
-          - mcVersion: '1.20.4'
-            javaVersion: '20'
-          - mcVersion: '1.20.6'
-            javaVersion: '21'
-          #- mcVersion: 'latest'
-          #  javaVersion: '21'
 
     steps:
       - name: Checkout repository
@@ -40,30 +37,52 @@ jobs:
         uses: actions/setup-java@v4.6.0
         with:
           distribution: temurin
-          java-version: ${{ matrix.javaVersion }}
+          java-version: ${{ inputs.java-version }}
           java-package: jdk
           architecture: x64
 
       - name: Setup server
         run: |
-          echo 'eula=true' > eula.txt
-          mkdir plugins
+          set -euo pipefail
 
-      - name: Download ${{ matrix.mcVersion }} Paper
+          echo 'eula=true' > eula.txt
+          mkdir -p plugins
+
+      - name: Download ${{ inputs.server-project }} ${{ inputs.server-version }}
+        env:
+          SERVER_PROJECT: ${{ inputs.server-project }}
+          SERVER_VERSION: ${{ inputs.server-version }}
+          USER_AGENT: Minecraft0122-Slimefun-CI/1.0 (https://github.com/Minecraft0122/Slimefun)
         run: |
-          VERSION="${{ matrix.mcVersion }}"
-          if [ "$VERSION" == "latest" ]; then
-            VERSION=$(curl https://api.papermc.io/v2/projects/paper/ -s | jq -r '.versions[-1]')
+          set -euo pipefail
+
+          BUILDS_URL="https://fill.papermc.io/v3/projects/${SERVER_PROJECT}/versions/${SERVER_VERSION}/builds"
+
+          curl --fail --show-error --silent --location --retry 3 \
+            -H "User-Agent: ${USER_AGENT}" \
+            "$BUILDS_URL" \
+            -o server-builds.json
+
+          DOWNLOAD_URL=$(jq -r 'map(select(.channel == "STABLE" and .downloads["server:default"].url != null)) | .[0].downloads["server:default"].url // empty' server-builds.json)
+          CHECKSUM=$(jq -r 'map(select(.channel == "STABLE" and .downloads["server:default"].checksums.sha256 != null)) | .[0].downloads["server:default"].checksums.sha256 // empty' server-builds.json)
+          BUILD_ID=$(jq -r 'map(select(.channel == "STABLE")) | .[0].id // empty' server-builds.json)
+          SERVER_JAR=$(jq -r 'map(select(.channel == "STABLE" and .downloads["server:default"].name != null)) | .[0].downloads["server:default"].name // empty' server-builds.json)
+
+          if [ -z "$DOWNLOAD_URL" ] || [ -z "$CHECKSUM" ]; then
+            echo "No stable server download found for ${SERVER_PROJECT} ${SERVER_VERSION}" >&2
+            jq -r '.[] | "\(.id) \(.channel)"' server-builds.json >&2
+            exit 1
           fi
 
-          BUILD_JAR=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/$VERSION/builds" \
-            | jq '.builds[-1] | "\(.build) \(.downloads.application.name)"' -r)
-          BUILD=$(echo "$BUILD_JAR" | awk '{print $1}')
-          JAR_FILE=$(echo "$BUILD_JAR" | awk '{print $2}')
+          echo "Downloading ${SERVER_PROJECT} ${SERVER_VERSION} build ${BUILD_ID} (${SERVER_JAR})"
 
-          echo "Downloading... https://api.papermc.io/v2/projects/paper/versions/$VERSION/builds/$BUILD/downloads/$JAR_FILE"
-          curl -o paper.jar \
-            "https://api.papermc.io/v2/projects/paper/versions/$VERSION/builds/$BUILD/downloads/$JAR_FILE"
+          curl --fail --show-error --location --retry 3 \
+            -H "User-Agent: ${USER_AGENT}" \
+            -o server.jar \
+            "$DOWNLOAD_URL"
+
+          echo "${CHECKSUM}  server.jar" | sha256sum --check -
+          jar tf server.jar > /dev/null
 
       - name: Download Slimefun
         uses: actions/download-artifact@v4
@@ -71,11 +90,84 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: plugins/
 
-      - name: Download e2e-tester
+      - name: Verify Slimefun plugin
         run: |
-          curl -o e2e-tester.jar https://preview-builds.walshy.dev/download/e2e-tester/main/latest
-          mv e2e-tester.jar plugins/e2e-tester.jar
+          set -euo pipefail
+
+          SLIMEFUN_JAR=$(find plugins -maxdepth 1 -type f -name 'Slimefun*.jar' | head -n 1)
+
+          if [ -z "$SLIMEFUN_JAR" ]; then
+            echo "The artifact '${{ inputs.artifact-name }}' did not contain a Slimefun jar" >&2
+            find plugins -maxdepth 2 -type f -print >&2
+            exit 1
+          fi
+
+          jar tf "$SLIMEFUN_JAR" > /dev/null
+          jar tf "$SLIMEFUN_JAR" | grep -qx 'plugin.yml'
+          sha256sum "$SLIMEFUN_JAR"
 
       - name: Run server
         run: |
-          java -jar paper.jar --nogui
+          set -euo pipefail
+
+          SERVER_INPUT=$(mktemp -u)
+          mkfifo "$SERVER_INPUT"
+
+          java -jar server.jar --nogui < "$SERVER_INPUT" 2>&1 | tee server-output.log &
+          SERVER_PID=$!
+          exec 3>"$SERVER_INPUT"
+
+          STARTED=false
+
+          for _ in $(seq 1 180); do
+            if ! kill -0 "$SERVER_PID" 2> /dev/null; then
+              wait "$SERVER_PID"
+              exit $?
+            fi
+
+            if grep -q 'Done (.*)! For help, type "help"' server-output.log; then
+              STARTED=true
+              break
+            fi
+
+            sleep 1
+          done
+
+          if [ "$STARTED" != true ]; then
+            echo "Server did not finish startup within 180 seconds" >&2
+            printf 'stop\n' >&3 || true
+            wait "$SERVER_PID" || true
+            exit 1
+          fi
+
+          printf 'stop\n' >&3
+          wait "$SERVER_PID"
+          exec 3>&-
+
+          if ! grep -q '\[Slimefun\] Enabling Slimefun' server-output.log; then
+            echo "Slimefun did not reach its enable phase" >&2
+            exit 1
+          fi
+
+          if [ "${{ inputs.server-project }}" = "folia" ] && ! grep -q '\[Slimefun\] Folia was detected!' server-output.log; then
+            echo "Slimefun did not report Folia scheduler support" >&2
+            exit 1
+          fi
+
+          if grep -Eq 'Error occurred while enabling Slimefun|Could not load plugin|java\.lang\.[A-Za-z0-9]*(Exception|Error)' server-output.log; then
+            echo "Server log contains plugin startup errors" >&2
+            exit 1
+          fi
+
+      - name: Upload e2e logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-${{ inputs.server-project }}-${{ inputs.server-version }}-java-${{ inputs.java-version }}
+          path: |
+            logs/**
+            crash-reports/**
+            server-builds.json
+            server-output.log
+          if-no-files-found: ignore
+          retention-days: 14

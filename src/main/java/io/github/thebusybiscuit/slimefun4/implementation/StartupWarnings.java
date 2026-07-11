@@ -34,12 +34,12 @@ final class StartupWarnings {
     }
 
     @ParametersAreNonnullByDefault
-    static void invalidMinecraftVersion(Logger logger, int majorVersion, String slimefunVersion) {
+    static void invalidMinecraftVersion(Logger logger, String minecraftVersion, String slimefunVersion) {
         logger.log(Level.SEVERE, BORDER);
         logger.log(Level.SEVERE, PREFIX + "Slimefun was not installed correctly!");
         logger.log(Level.SEVERE, PREFIX + "You are using the wrong version of Minecraft!");
         logger.log(Level.SEVERE, PREFIX);
-        logger.log(Level.SEVERE, PREFIX + "You are using Minecraft 1.{0}.x", majorVersion);
+        logger.log(Level.SEVERE, PREFIX + "You are using Minecraft {0}", minecraftVersion);
         logger.log(Level.SEVERE, PREFIX + "but Slimefun {0} requires you to be using", slimefunVersion);
         logger.log(Level.SEVERE, PREFIX + "Minecraft {0}", String.join(" / ", Slimefun.getSupportedVersions()));
         logger.log(Level.SEVERE, BORDER);
@@ -49,11 +49,10 @@ final class StartupWarnings {
     static void invalidServerSoftware(Logger logger) {
         logger.log(Level.SEVERE, BORDER);
         logger.log(Level.SEVERE, PREFIX + "Slimefun was not installed correctly!");
-        logger.log(Level.SEVERE, PREFIX + "CraftBukkit is no longer supported!");
+        logger.log(Level.SEVERE, PREFIX + "This server software is no longer supported!");
         logger.log(Level.SEVERE, PREFIX);
-        logger.log(Level.SEVERE, PREFIX + "Slimefun requires you to use Spigot, Paper or");
-        logger.log(Level.SEVERE, PREFIX + "any supported fork of Spigot or Paper.");
-        logger.log(Level.SEVERE, PREFIX + "(We recommend Paper)");
+        logger.log(Level.SEVERE, PREFIX + "Slimefun requires Paper/Folia 26.1.2 or");
+        logger.log(Level.SEVERE, PREFIX + "a compatible modern Paper/Folia fork.");
         logger.log(Level.SEVERE, BORDER);
     }
 

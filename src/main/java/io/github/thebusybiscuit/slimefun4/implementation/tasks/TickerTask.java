@@ -3,23 +3,23 @@ package io.github.thebusybiscuit.slimefun4.implementation.tasks;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.scheduler.BukkitScheduler;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.blocks.ChunkPosition;
@@ -60,10 +60,10 @@ public class TickerTask implements Runnable {
 
     private int tickRate;
     private boolean halted = false;
-    private boolean running = false;
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     /**
-     * This method starts the {@link TickerTask} on an asynchronous schedule.
+     * This method starts the {@link TickerTask} on a global schedule.
      * 
      * @param plugin
      *            The instance of our {@link Slimefun}
@@ -71,35 +71,34 @@ public class TickerTask implements Runnable {
     public void start(@Nonnull Slimefun plugin) {
         this.tickRate = Slimefun.getCfg().getInt("URID.custom-ticker-delay");
 
-        BukkitScheduler scheduler = plugin.getServer().getScheduler();
-        scheduler.runTaskTimerAsynchronously(plugin, this, 100L, tickRate);
+        plugin.getScheduler().runGlobalTimer(this, 100L, tickRate);
     }
 
     /**
      * This method resets this {@link TickerTask} to run again.
      */
     private void reset() {
-        running = false;
+        running.set(false);
     }
 
     @Override
     public void run() {
+        // If this method is actually still running... DON'T
+        if (!running.compareAndSet(false, true)) {
+            return;
+        }
+
+        Slimefun.getProfiler().start();
+        Set<BlockTicker> tickers = ConcurrentHashMap.newKeySet();
+        AtomicInteger pendingTasks = new AtomicInteger(1);
+
         try {
-            // If this method is actually still running... DON'T
-            if (running) {
-                return;
-            }
-
-            running = true;
-            Slimefun.getProfiler().start();
-            Set<BlockTicker> tickers = new HashSet<>();
-
             // Remove any deleted blocks
             Iterator<Map.Entry<Location, Boolean>> removals = deletionQueue.entrySet().iterator();
             while (removals.hasNext()) {
                 Map.Entry<Location, Boolean> entry = removals.next();
-                BlockStorage.deleteLocationInfoUnsafely(entry.getKey(), entry.getValue());
                 removals.remove();
+                scheduleRegionTask(entry.getKey(), pendingTasks, tickers, () -> BlockStorage.deleteLocationInfoUnsafely(entry.getKey(), entry.getValue()));
             }
 
             // Fixes #2576 - Remove any deleted instances of BlockStorage
@@ -108,7 +107,11 @@ public class TickerTask implements Runnable {
             // Run our ticker code
             if (!halted) {
                 for (Map.Entry<ChunkPosition, Set<Location>> entry : tickingLocations.entrySet()) {
-                    tickChunk(entry.getKey(), tickers, entry.getValue());
+                    Location location = getFirstLocation(entry.getValue());
+
+                    if (location != null) {
+                        scheduleRegionTask(location, pendingTasks, tickers, () -> tickChunk(entry.getKey(), tickers, entry.getValue()));
+                    }
                 }
             }
 
@@ -116,10 +119,49 @@ public class TickerTask implements Runnable {
             Iterator<Map.Entry<Location, Location>> moves = movingQueue.entrySet().iterator();
             while (moves.hasNext()) {
                 Map.Entry<Location, Location> entry = moves.next();
-                BlockStorage.moveLocationInfoUnsafely(entry.getKey(), entry.getValue());
                 moves.remove();
+                scheduleRegionTask(entry.getKey(), pendingTasks, tickers, () -> BlockStorage.moveLocationInfoUnsafely(entry.getKey(), entry.getValue()));
+            }
+        } catch (Exception | LinkageError x) {
+            Slimefun.logger().log(Level.SEVERE, x, () -> "An Exception was caught while ticking the Block Tickers Task for Slimefun v" + Slimefun.getVersion());
+        } finally {
+            finishTask(pendingTasks, tickers);
+        }
+    }
+
+    @Nullable
+    private Location getFirstLocation(@Nonnull Set<Location> locations) {
+        Iterator<Location> iterator = locations.iterator();
+
+        return iterator.hasNext() ? iterator.next() : null;
+    }
+
+    @ParametersAreNonnullByDefault
+    private void scheduleRegionTask(Location location, AtomicInteger pendingTasks, Set<BlockTicker> tickers, Runnable runnable) {
+        pendingTasks.incrementAndGet();
+        AtomicBoolean taskStarted = new AtomicBoolean(false);
+
+        try {
+            Slimefun.getScheduler().runRegion(location, () -> {
+                taskStarted.set(true);
+
+                try {
+                    runnable.run();
+                } finally {
+                    finishTask(pendingTasks, tickers);
+                }
+            });
+        } catch (Exception | LinkageError x) {
+            if (!taskStarted.get()) {
+                finishTask(pendingTasks, tickers);
             }
 
+            throw x;
+        }
+    }
+
+    private void finishTask(@Nonnull AtomicInteger pendingTasks, @Nonnull Set<BlockTicker> tickers) {
+        if (pendingTasks.decrementAndGet() == 0) {
             // Start a new tick cycle for every BlockTicker
             for (BlockTicker ticker : tickers) {
                 ticker.startNewTick();
@@ -127,9 +169,6 @@ public class TickerTask implements Runnable {
 
             reset();
             Slimefun.getProfiler().stop();
-        } catch (Exception | LinkageError x) {
-            Slimefun.logger().log(Level.SEVERE, x, () -> "An Exception was caught while ticking the Block Tickers Task for Slimefun v" + Slimefun.getVersion());
-            reset();
         }
     }
 
@@ -153,26 +192,15 @@ public class TickerTask implements Runnable {
 
         if (item != null && item.getBlockTicker() != null) {
             try {
-                if (item.getBlockTicker().isSynchronized()) {
-                    Slimefun.getProfiler().scheduleEntries(1);
-                    item.getBlockTicker().update();
+                BlockTicker ticker = item.getBlockTicker();
+                long timestamp = Slimefun.getProfiler().newEntry();
 
-                    /**
-                     * We are inserting a new timestamp because synchronized actions
-                     * are always ran with a 50ms delay (1 game tick)
-                     */
-                    Slimefun.runSync(() -> {
-                        Block b = l.getBlock();
-                        tickBlock(l, b, item, data, System.nanoTime());
-                    });
-                } else {
-                    long timestamp = Slimefun.getProfiler().newEntry();
-                    item.getBlockTicker().update();
-                    Block b = l.getBlock();
-                    tickBlock(l, b, item, data, timestamp);
+                if (tickers.add(ticker)) {
+                    ticker.update();
                 }
 
-                tickers.add(item.getBlockTicker());
+                Block b = l.getBlock();
+                tickBlock(l, b, item, data, timestamp);
             } catch (Exception x) {
                 reportErrors(l, item, x);
             }
@@ -207,7 +235,7 @@ public class TickerTask implements Runnable {
             bugs.remove(position);
 
             BlockStorage.deleteLocationInfoUnsafely(l, true);
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Slimefun.instance(), () -> l.getBlock().setType(Material.AIR));
+            l.getBlock().setType(Material.AIR);
         } else {
             bugs.put(position, errors);
         }

@@ -7,22 +7,23 @@ on:
       - completed
 
 permissions:
+  actions: read
   contents: read
   pull-requests: write
 
 jobs:
   preview:
-    if: ${{ github.repository_owner == 'Slimefun' && github.event.workflow_run.conclusion == 'success' }}
-    name: Build and Publish the jar
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    name: Publish preview jar
     runs-on: ubuntu-latest
 
     steps:
-      # Kinda jank way to grab the PR and commit hash and then download the artifact
-      # TODO: Move this code to our own mini-action
-      - name: Grab PR & run ID and download the artifact
+      - name: Grab PR metadata and download the artifact
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require("fs");
+
             const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -33,7 +34,7 @@ jobs:
               // Extract the PR number and commit hash from the artifact name
               const match = /^slimefun-(\d+)-([a-f0-9]{8})$/.exec(artifact.name);
               if (match) {
-                require("fs").appendFileSync(
+                fs.appendFileSync(
                   process.env.GITHUB_ENV,
                   `\nPR_NUMBER=${match[1]}` +
                     `\nCOMMIT_HASH=${match[2]}`
@@ -45,28 +46,65 @@ jobs:
                   artifact_id: artifact.id,
                   archive_format: 'zip',
                 });
-                require('fs').writeFileSync(`${process.env.GITHUB_WORKSPACE}/preview.zip`, Buffer.from(download.data))
+                fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/preview.zip`, Buffer.from(download.data));
 
                 break;
               }
             }
 
+            if (!fs.existsSync(`${process.env.GITHUB_WORKSPACE}/preview.zip`)) {
+              core.notice(`No Slimefun preview artifact found on workflow run ${context.payload.workflow_run.id}; skipping preview publish`);
+              fs.appendFileSync(process.env.GITHUB_ENV, "\nSKIP_PREVIEW=true");
+            }
+
       # Unzip the artifact
       - name: Unzip
+        if: ${{ env.SKIP_PREVIEW != 'true' }}
         run: |
+          set -euo pipefail
+
           unzip preview.zip
           rm preview.zip
-          mv 'Slimefun vPreview Build #${{ env.PR_NUMBER }}-${{ env.COMMIT_HASH }}.jar' preview.jar
+          JAR_FILE=$(find . -maxdepth 1 -type f -name 'Slimefun vPreview Build*.jar' | head -n 1)
+
+          if [ -z "$JAR_FILE" ]; then
+            echo "The preview artifact did not contain a Slimefun jar" >&2
+            find . -maxdepth 1 -type f -print >&2
+            exit 1
+          fi
+
+          unzip -t "$JAR_FILE" > /dev/null
+          mv "$JAR_FILE" preview.jar
+
+      - name: Check preview publish token
+        if: ${{ env.SKIP_PREVIEW != 'true' }}
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$PUBLISH_TOKEN" ]; then
+            echo "SKIP_PREVIEW=true" >> "$GITHUB_ENV"
+            echo "::notice::PUBLISH_TOKEN is not configured; skipping external preview publish"
+          fi
 
       - name: Upload to preview service
+        if: ${{ env.SKIP_PREVIEW != 'true' }}
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
+          set -euo pipefail
+
           curl -X POST \
-            -H 'Authorization: ${{ secrets.PUBLISH_TOKEN }}' \
+            --fail \
+            --show-error \
+            -H "Authorization: ${PUBLISH_TOKEN}" \
             -H "X-Checksum: $(sha256sum 'preview.jar' | awk '{print $1}')" \
             --data-binary '@preview.jar' \
             https://preview-builds.walshy.dev/upload/Slimefun/${{ env.PR_NUMBER }}/${{ env.COMMIT_HASH }}
 
       - name: Post comment
+        if: ${{ env.SKIP_PREVIEW != 'true' }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           number: ${{ env.PR_NUMBER }}

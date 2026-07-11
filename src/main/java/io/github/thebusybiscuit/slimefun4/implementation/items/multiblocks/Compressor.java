@@ -26,7 +26,6 @@ import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
-import io.papermc.lib.PaperLib;
 
 public class Compressor extends MultiBlockMachine {
 
@@ -58,7 +57,7 @@ public class Compressor extends MultiBlockMachine {
     @Override
     public void onInteract(Player p, Block b) {
         Block dispBlock = b.getRelative(BlockFace.DOWN);
-        BlockState state = PaperLib.getBlockState(dispBlock, false).getState();
+        BlockState state = dispBlock.getState(false);
 
         if (state instanceof Dispenser dispenser) {
             Inventory inv = dispenser.getInventory();
@@ -99,7 +98,7 @@ public class Compressor extends MultiBlockMachine {
         for (int i = 0; i < 4; i++) {
             int j = i;
 
-            Slimefun.runSync(() -> {
+            Slimefun.runSync(dispenser.getLocation(), () -> {
                 if (j < 3) {
                     if (j == 1) {
                         SoundEffect.COMPRESSOR_CRAFT_CONTRACT_SOUND.playFor(p);

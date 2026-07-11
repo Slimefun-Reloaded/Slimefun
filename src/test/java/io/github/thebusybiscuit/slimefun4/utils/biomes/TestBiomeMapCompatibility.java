@@ -29,7 +29,7 @@ import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.JsonUtils;
 
-import be.seeseemelk.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 /**
  * This test checks if biome maps work across multiple versions of Minecraft.
@@ -107,7 +107,8 @@ class TestBiomeMapCompatibility {
             MinecraftVersion.MINECRAFT_1_18,
             MinecraftVersion.MINECRAFT_1_19,
             MinecraftVersion.MINECRAFT_1_20,
-            MinecraftVersion.MINECRAFT_1_21
+            MinecraftVersion.MINECRAFT_1_21,
+            MinecraftVersion.MINECRAFT_26_1_2
         });
 
         testCases.put("oil_v1.16", new MinecraftVersion[] {
@@ -119,7 +120,8 @@ class TestBiomeMapCompatibility {
             MinecraftVersion.MINECRAFT_1_18,
             MinecraftVersion.MINECRAFT_1_19,
             MinecraftVersion.MINECRAFT_1_20,
-            MinecraftVersion.MINECRAFT_1_21
+            MinecraftVersion.MINECRAFT_1_21,
+            MinecraftVersion.MINECRAFT_26_1_2
         });
 
         testCases.put("salt_v1.16", new MinecraftVersion[] {
@@ -131,7 +133,8 @@ class TestBiomeMapCompatibility {
             MinecraftVersion.MINECRAFT_1_18,
             MinecraftVersion.MINECRAFT_1_19,
             MinecraftVersion.MINECRAFT_1_20,
-            MinecraftVersion.MINECRAFT_1_21
+            MinecraftVersion.MINECRAFT_1_21,
+            MinecraftVersion.MINECRAFT_26_1_2
         });
 
         testCases.put("uranium_v1.16", new MinecraftVersion[] {
@@ -146,7 +149,8 @@ class TestBiomeMapCompatibility {
             MinecraftVersion.MINECRAFT_1_18,
             MinecraftVersion.MINECRAFT_1_19,
             MinecraftVersion.MINECRAFT_1_20,
-            MinecraftVersion.MINECRAFT_1_21
+            MinecraftVersion.MINECRAFT_1_21,
+            MinecraftVersion.MINECRAFT_26_1_2
         });
         // @formatter:on
 

@@ -10,6 +10,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 
 final class GrapplingHookEntity {
@@ -41,13 +42,17 @@ final class GrapplingHookEntity {
     }
 
     public void remove() {
-        if (arrow.isValid()) {
-            arrow.remove();
-        }
+        Slimefun.getScheduler().runEntity(arrow, () -> {
+            if (arrow.isValid()) {
+                arrow.remove();
+            }
+        });
 
-        if (leashTarget.isValid()) {
-            leashTarget.remove();
-        }
+        Slimefun.getScheduler().runEntity(leashTarget, () -> {
+            if (leashTarget.isValid()) {
+                leashTarget.remove();
+            }
+        });
     }
 
 }

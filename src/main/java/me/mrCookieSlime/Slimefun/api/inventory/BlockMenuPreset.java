@@ -250,7 +250,7 @@ public abstract class BlockMenuPreset extends ChestMenu {
     public void newInstance(@Nonnull BlockMenu menu, @Nonnull Location l) {
         Validate.notNull(l, "Cannot create a new BlockMenu without a Location");
 
-        Slimefun.runSync(() -> {
+        Slimefun.runSync(l, () -> {
             locked = true;
 
             try {

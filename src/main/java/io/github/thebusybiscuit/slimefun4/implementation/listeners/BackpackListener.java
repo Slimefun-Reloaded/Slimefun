@@ -138,7 +138,7 @@ public class BackpackListener implements Listener {
     @ParametersAreNonnullByDefault
     public void openBackpack(Player p, ItemStack item, SlimefunBackpack backpack) {
         if (item.getAmount() == 1) {
-            if (backpack.canUse(p, true) && !PlayerProfile.get(p, profile -> openBackpack(p, item, profile, backpack.getSize()))) {
+            if (backpack.canUse(p, true) && !PlayerProfile.get(p, profile -> Slimefun.runSync(p, () -> openBackpack(p, item, profile, backpack.getSize())))) {
                 Slimefun.getLocalization().sendMessage(p, "messages.opening-backpack");
             }
         } else {
