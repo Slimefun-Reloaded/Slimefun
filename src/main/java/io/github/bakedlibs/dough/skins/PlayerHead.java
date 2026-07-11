@@ -19,8 +19,6 @@ import io.github.bakedlibs.dough.skins.nms.PlayerHeadAdapter;
 
 public final class PlayerHead {
 
-    private static final PlayerHeadAdapter adapter = PlayerHeadAdapter.get();
-
     private PlayerHead() {}
 
     /**
@@ -67,6 +65,8 @@ public final class PlayerHead {
 
     @ParametersAreNonnullByDefault
     public static void setSkin(Block block, PlayerSkin skin, boolean sendBlockUpdate) {
+        PlayerHeadAdapter adapter = getAdapter();
+
         if (adapter == null) {
             throw new UnsupportedOperationException("Cannot update skin texture, no adapter found");
         }
@@ -82,6 +82,14 @@ public final class PlayerHead {
             adapter.setGameProfile(block, profile, sendBlockUpdate);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static PlayerHeadAdapter getAdapter() {
+        try {
+            return PlayerHeadAdapter.get();
+        } catch (RuntimeException | LinkageError x) {
+            return null;
         }
     }
 }

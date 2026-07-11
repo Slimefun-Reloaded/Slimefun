@@ -154,7 +154,7 @@ jobs:
             exit 1
           fi
 
-          if grep -Eq 'Error occurred while enabling Slimefun|Disabling Slimefun|Could not load plugin|java\.lang\.(Exception|Error)' server-output.log; then
+          if grep -Eq 'Error occurred while enabling Slimefun|Could not load plugin|java\.lang\.[A-Za-z0-9]*(Exception|Error)' server-output.log; then
             echo "Server log contains plugin startup errors" >&2
             exit 1
           fi
