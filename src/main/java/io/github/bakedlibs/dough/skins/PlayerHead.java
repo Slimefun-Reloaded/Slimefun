@@ -16,7 +16,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import com.mojang.authlib.GameProfile;
 
 import io.github.bakedlibs.dough.skins.nms.PlayerHeadAdapter;
-import io.github.bakedlibs.dough.versions.UnknownServerVersionException;
 
 public final class PlayerHead {
 
@@ -52,7 +51,7 @@ public final class PlayerHead {
         return getItemStack(meta -> {
             try {
                 skin.getProfile().apply(meta);
-            } catch (NoSuchFieldException | IllegalAccessException | UnknownServerVersionException e) {
+            } catch (IllegalArgumentException e) {
                 e.printStackTrace();
             }
         });
