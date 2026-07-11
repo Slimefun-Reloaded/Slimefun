@@ -7,13 +7,14 @@ on:
       - completed
 
 permissions:
+  actions: read
   contents: read
   pull-requests: write
 
 jobs:
   preview:
-    if: ${{ github.repository_owner == 'Slimefun' && github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled' }}
-    name: Build and Publish the jar
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    name: Publish preview jar
     runs-on: ubuntu-latest
 
     steps:
@@ -72,18 +73,32 @@ jobs:
             exit 1
           fi
 
-          jar tf "$JAR_FILE" > /dev/null
+          unzip -t "$JAR_FILE" > /dev/null
           mv "$JAR_FILE" preview.jar
+
+      - name: Check preview publish token
+        if: ${{ env.SKIP_PREVIEW != 'true' }}
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$PUBLISH_TOKEN" ]; then
+            echo "SKIP_PREVIEW=true" >> "$GITHUB_ENV"
+            echo "::notice::PUBLISH_TOKEN is not configured; skipping external preview publish"
+          fi
 
       - name: Upload to preview service
         if: ${{ env.SKIP_PREVIEW != 'true' }}
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
           set -euo pipefail
 
           curl -X POST \
             --fail \
             --show-error \
-            -H 'Authorization: ${{ secrets.PUBLISH_TOKEN }}' \
+            -H "Authorization: ${PUBLISH_TOKEN}" \
             -H "X-Checksum: $(sha256sum 'preview.jar' | awk '{print $1}')" \
             --data-binary '@preview.jar' \
             https://preview-builds.walshy.dev/upload/Slimefun/${{ env.PR_NUMBER }}/${{ env.COMMIT_HASH }}
