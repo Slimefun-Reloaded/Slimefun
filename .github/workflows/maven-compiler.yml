@@ -7,12 +7,6 @@ on:
     paths:
     - 'src/**'
     - 'pom.xml'
-  pull_request:
-    paths:
-    - '.github/workflows/**'
-    - 'src/**'
-    - 'pom.xml'
-    - 'CHANGELOG.md'
 
 permissions:
   contents: read

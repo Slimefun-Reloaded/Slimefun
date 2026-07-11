@@ -1,21 +1,34 @@
 name: Pull Request
 
 on:
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: 'Run the Folia end-to-end smoke test after building'
+        required: true
+        type: boolean
+        default: true
   pull_request:
     paths:
     - '.github/workflows/**'
     - 'src/**'
     - 'pom.xml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
-  setup-preview-build:
-    name: Preview build
+  preview-build:
+    name: Build and upload preview jar
     runs-on: ubuntu-latest
     outputs:
-     short-commit-hash: ${{ steps.env-setup.outputs.SHORT_COMMIT_HASH }}
+      artifact-name: ${{ steps.env-setup.outputs.artifact-name }}
+      jar-file: ${{ steps.env-setup.outputs.jar-file }}
+      short-commit-hash: ${{ steps.env-setup.outputs.short-commit-hash }}
 
     steps:
     - name: Checkout repository
@@ -28,35 +41,64 @@ jobs:
         java-version: '25'
         java-package: jdk
         architecture: x64
-
-    - name: Cache Maven packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        cache: 'maven'
 
     # Setup for the preview build
     - id: env-setup
       run: |
-        SHORT_COMMIT_HASH=$(git rev-parse --short=8 ${{ github.sha }})
-        JAR_VERSION="Preview Build #${{ github.event.number }}-$SHORT_COMMIT_HASH"
+        set -euo pipefail
+
+        SHORT_COMMIT_HASH=$(git rev-parse --short=8 HEAD)
+
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          BUILD_ID="${{ github.event.number }}"
+          JAR_VERSION="Preview Build #${BUILD_ID}-${SHORT_COMMIT_HASH}"
+          ARTIFACT_NAME="slimefun-${BUILD_ID}-${SHORT_COMMIT_HASH}"
+        else
+          BUILD_ID="manual-${{ github.run_number }}"
+          JAR_VERSION="Preview Build ${BUILD_ID}-${SHORT_COMMIT_HASH}"
+          ARTIFACT_NAME="slimefun-${BUILD_ID}-${SHORT_COMMIT_HASH}"
+        fi
+
+        JAR_FILE="target/Slimefun v${JAR_VERSION}.jar"
+
         echo "SHORT_COMMIT_HASH=$SHORT_COMMIT_HASH" >> "$GITHUB_ENV"
-        echo "SHORT_COMMIT_HASH=$SHORT_COMMIT_HASH" >> "$GITHUB_OUTPUT"
         echo "JAR_VERSION=$JAR_VERSION" >> "$GITHUB_ENV"
+        echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> "$GITHUB_ENV"
+        echo "JAR_FILE=$JAR_FILE" >> "$GITHUB_ENV"
+
+        echo "short-commit-hash=$SHORT_COMMIT_HASH" >> "$GITHUB_OUTPUT"
+        echo "artifact-name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+        echo "jar-file=$JAR_FILE" >> "$GITHUB_OUTPUT"
+
         sed -i "s/<version>4.9-UNOFFICIAL<\/version>/<version>$JAR_VERSION<\/version>/g" pom.xml
 
     - name: Build with Maven
-      run: mvn package
+      run: mvn -B package --file pom.xml
 
-    - name: Upload the artifact
+    - name: Verify preview jar
+      run: |
+        set -euo pipefail
+
+        test -s "$JAR_FILE"
+        jar tf "$JAR_FILE" > /dev/null
+        sha256sum "$JAR_FILE"
+
+    - name: Upload preview jar
       uses: actions/upload-artifact@v4
       with:
-        name: slimefun-${{ github.event.number }}-${{ env.SHORT_COMMIT_HASH }}
-        path: 'target/Slimefun v${{ env.JAR_VERSION }}.jar'
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ${{ env.JAR_FILE }}
+        if-no-files-found: error
+        retention-days: 14
 
-  call-workflows:
-    needs: [setup-preview-build]
+  e2e-testing:
+    name: Folia smoke test
+    needs: [preview-build]
+    if: ${{ github.event_name == 'pull_request' || inputs.run_e2e }}
     uses: ./.github/workflows/e2e-testing.yml
     with:
-      artifact-name: slimefun-${{ github.event.number }}-${{ needs.setup-preview-build.outputs.short-commit-hash }}
+      artifact-name: ${{ needs.preview-build.outputs.artifact-name }}
+      server-project: folia
+      server-version: '26.1.2'
+      java-version: '25'
