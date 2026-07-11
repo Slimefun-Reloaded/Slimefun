@@ -228,6 +228,7 @@
                             <excludes>
                                 <exclude>io/github/bakedlibs/dough/skins/CustomGameProfile.class</exclude>
                                 <exclude>io/github/bakedlibs/dough/skins/PlayerHead.class</exclude>
+                                <exclude>io/github/bakedlibs/dough/versions/MinecraftVersion.class</exclude>
                             </excludes>
                         </filter>
                     </filters>
