@@ -223,6 +223,13 @@
                                 <exclude>META-INF/*</exclude>
                             </excludes>
                         </filter>
+                        <filter>
+                            <artifact>com.github.Slimefun.dough:dough-api</artifact>
+                            <excludes>
+                                <exclude>io/github/bakedlibs/dough/skins/CustomGameProfile.class</exclude>
+                                <exclude>io/github/bakedlibs/dough/skins/PlayerHead.class</exclude>
+                            </excludes>
+                        </filter>
                     </filters>
                 </configuration>
 

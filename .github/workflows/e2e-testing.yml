@@ -106,20 +106,58 @@ jobs:
           jar tf "$SLIMEFUN_JAR" | grep -qx 'plugin.yml'
           sha256sum "$SLIMEFUN_JAR"
 
-      - name: Download e2e-tester
+      - name: Run server
         run: |
           set -euo pipefail
 
-          curl --fail --show-error --location --retry 3 \
-            -o e2e-tester.jar \
-            https://preview-builds.walshy.dev/download/e2e-tester/main/latest
+          SERVER_INPUT=$(mktemp -u)
+          mkfifo "$SERVER_INPUT"
 
-          jar tf e2e-tester.jar > /dev/null
-          mv e2e-tester.jar plugins/e2e-tester.jar
+          java -jar server.jar --nogui < "$SERVER_INPUT" 2>&1 | tee server-output.log &
+          SERVER_PID=$!
+          exec 3>"$SERVER_INPUT"
 
-      - name: Run server
-        run: |
-          timeout 180s java -jar server.jar --nogui
+          STARTED=false
+
+          for _ in $(seq 1 180); do
+            if ! kill -0 "$SERVER_PID" 2> /dev/null; then
+              wait "$SERVER_PID"
+              exit $?
+            fi
+
+            if grep -q 'Done (.*)! For help, type "help"' server-output.log; then
+              STARTED=true
+              break
+            fi
+
+            sleep 1
+          done
+
+          if [ "$STARTED" != true ]; then
+            echo "Server did not finish startup within 180 seconds" >&2
+            printf 'stop\n' >&3 || true
+            wait "$SERVER_PID" || true
+            exit 1
+          fi
+
+          printf 'stop\n' >&3
+          wait "$SERVER_PID"
+          exec 3>&-
+
+          if ! grep -q '\[Slimefun\] Enabling Slimefun' server-output.log; then
+            echo "Slimefun did not reach its enable phase" >&2
+            exit 1
+          fi
+
+          if [ "${{ inputs.server-project }}" = "folia" ] && ! grep -q '\[Slimefun\] Folia was detected!' server-output.log; then
+            echo "Slimefun did not report Folia scheduler support" >&2
+            exit 1
+          fi
+
+          if grep -Eq 'Error occurred while enabling Slimefun|Disabling Slimefun|Could not load plugin|java\.lang\.(Exception|Error)' server-output.log; then
+            echo "Server log contains plugin startup errors" >&2
+            exit 1
+          fi
 
       - name: Upload e2e logs
         if: failure()
@@ -130,5 +168,6 @@ jobs:
             logs/**
             crash-reports/**
             server-builds.json
+            server-output.log
           if-no-files-found: ignore
           retention-days: 14
