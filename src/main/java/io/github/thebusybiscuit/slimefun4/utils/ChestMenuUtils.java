@@ -65,11 +65,19 @@ public final class ChestMenuUtils {
     }
 
     public static @Nonnull ItemStack getNoPermissionItem() {
-        return NO_PERMISSION;
+        return CustomItemStack.create(NO_PERMISSION, Slimefun.getLocalization().getMessage("messages.no-permission"));
+    }
+
+    public static @Nonnull ItemStack getNoPermissionItem(@Nonnull Player p) {
+        return CustomItemStack.create(NO_PERMISSION, Slimefun.getLocalization().getMessage(p, "messages.no-permission"));
     }
 
     public static @Nonnull ItemStack getNotResearchedItem() {
-        return NOT_RESEARCHED;
+        return CustomItemStack.create(NOT_RESEARCHED, Slimefun.getLocalization().getMessage("guide.locked"));
+    }
+
+    public static @Nonnull ItemStack getNotResearchedItem(@Nonnull Player p) {
+        return CustomItemStack.create(NOT_RESEARCHED, Slimefun.getLocalization().getMessage(p, "guide.locked"));
     }
 
     public static @Nonnull ItemStack getInputSlotTexture() {
@@ -107,7 +115,11 @@ public final class ChestMenuUtils {
     }
 
     public static @Nonnull ItemStack getWikiButton() {
-        return WIKI_BUTTON;
+        return CustomItemStack.create(WIKI_BUTTON, Slimefun.getLocalization().getMessage("guide.wiki-button"));
+    }
+
+    public static @Nonnull ItemStack getWikiButton(@Nonnull Player p) {
+        return CustomItemStack.create(WIKI_BUTTON, Slimefun.getLocalization().getMessage(p, "guide.wiki-button"));
     }
 
     public static @Nonnull ItemStack getPreviousButton(@Nonnull Player p, int page, int pages) {

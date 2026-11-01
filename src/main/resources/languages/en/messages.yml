@@ -45,6 +45,9 @@ placeholderapi:
 guide:
   locked: 'LOCKED'
   work-in-progress: 'This feature is not fully finished yet!'
+  wiki-button: '&3Slimefun Wiki'
+  click-to-unlock: '&a> Click to unlock'
+  research-cost: '&7Cost: &b%cost% Level(s)'
 
   locked-itemgroup:
   - 'To unlock this category you will'

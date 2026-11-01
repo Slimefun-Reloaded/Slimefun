@@ -40,18 +40,18 @@ slimefun:
   compressor_and_carbon: 碳的制作
   gilded_iron_armor: 镀金铁甲
   synthetic_diamond: 人造钻石
-  pressure_chamber: 压力机
+  pressure_chamber: 压力舱
   synthetic_sapphire: 人造蓝宝石
   damascus_steel: 大马士革钢锭
   damascus_steel_armor: 大马士革钢套装
   reinforced_alloy: 强化合金
-  carbonado: 黑色钻石
+  carbonado: 黑金刚石
   magic_workbench: 魔法工作台
   wind_staff: 风之法杖
   reinforced_armor: 强化套装
   ore_washer: 洗矿机
   gold_carats: 炼制纯金
-  silicon: 硅谷
+  silicon: 硅
   fire_staff: 火之法杖
   smelters_pickaxe: 熔炉镐
   common_talisman: 普通护身符
@@ -95,7 +95,7 @@ slimefun:
   explosive_tools: 爆破工具
   automated_panning_machine: 自动化淘金
   boots_of_the_stomper: 践踏者之靴
-  pickaxe_of_the_seeker: 寻矿稿
+  pickaxe_of_the_seeker: 寻矿镐
   backpacks: 背包
   woven_backpack: 编织背包
   crucible: 坩埚
@@ -188,9 +188,9 @@ slimefun:
   freezer: 冰箱先生
   cargo_basics: 基础货运
   cargo_nodes: 货运设施
-  electric_ingot_machines: 电力铸铁
-  medium_tier_electric_ingot_machines: 高速电力铸铁
-  high_tier_electric_ingot_machines: 更好的电力铸铁
+  electric_ingot_machines: 电力锭机
+  medium_tier_electric_ingot_machines: 高速电力锭机
+  high_tier_electric_ingot_machines: 高级电力锭机
   automated_crafting_chamber: 自动化合成
   better_food_fabricator: 更好的食品加工
   reactor_access_port: 反应堆交互
@@ -203,9 +203,9 @@ slimefun:
   electric_smeltery: 电力冶炼机
   better_electric_furnace: 更好的电炉
   better_carbon_press: 更好的碳压机
-  empowered_android: 可授权机器人
-  empowered_butcher_android: 可授权屠夫机器人
-  empowered_fisherman_android: 可授权渔夫机器人
+  empowered_android: 强化机器人
+  empowered_butcher_android: 强化屠夫机器人
+  empowered_fisherman_android: 强化渔夫机器人
   high_tier_carbon_press: 终极碳压机
   wither_assembler: 自动化击杀凋零
   better_heated_pressure_chamber: 更好的加热压力舱
@@ -233,7 +233,7 @@ slimefun:
   totem_of_undying: 不死图腾
   charging_bench: 充电座
   nether_gold_pan: 下界淘金盘
-  electric_press: 碳压机
+  electric_press: 电力压机
   magnesium_generator: 来自镁的能量
   kelp_cookie: 美味的海藻
   makeshift_smeltery: 临时冶炼炉
@@ -242,7 +242,7 @@ slimefun:
   advanced_industrial_miner: 进阶采矿
   magical_zombie_pills: 去僵尸化
   auto_brewer: 自动化酿造
-  climbing_pick: 古块丽影
+  climbing_pick: 方块古墓丽影
   shulker_shell: 人造潜影贝
   enchantment_rune: 远古附魔法
   lead_clothing: 强化布料

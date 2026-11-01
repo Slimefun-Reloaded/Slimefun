@@ -1,93 +1,127 @@
 options:
-  # Instead of disabling Auto Updates consider using the "stable" version of Slimefun.
-  # These builds are much more tested and are far less likely to have any issues.
-  # Note: When running a stable build auto-updates ONLY update to other stable builds! Perfect eh?
-  # You can download the latest stable build here: https://thebusybiscuit.github.io/builds/TheBusyBiscuit/Slimefun4/stable/
-
+  # 如需关闭自动更新，建议改用 stable 稳定版。稳定版经过更多测试，出现问题的可能性较低。
+  # 稳定版只会自动更新到其他稳定版。稳定版下载地址：
+  # https://thebusybiscuit.github.io/builds/TheBusyBiscuit/Slimefun4/stable/
+  # 是否自动更新 Slimefun。
   auto-update: true
+  # Slimefun 聊天消息前缀，支持颜色代码。
   chat-prefix: '&a&lSlimefun 4&7> '
+  # 防具效果更新间隔（秒）。
   armor-update-interval: 10
+  # 是否启用 Slimefun 防具的特殊效果。
   enable-armor-effects: true
+  # 是否启用辐射系统。
   enable-radiation: true
+  # 辐射状态更新间隔（秒）。
   radiation-update-interval: 1
+  # 玩家受到辐射伤害前的宽限时间（秒）。
   radiation-grace-period: 15
+  # 彩虹盔甲效果更新间隔（秒）。
   rainbow-armor-update-interval: 3
+  # 方块数据自动保存间隔（分钟）。
   auto-save-delay-in-minutes: 10
+  # 是否使用旧版洗矿机配方。
   legacy-ore-washer: false
+  # 是否使用旧版粉尘洗涤配方。
   legacy-dust-washer: false
+  # 是否使用旧版矿石粉碎机配方。
   legacy-ore-grinder: true
-  language: en
+  # 服务器默认语言；可选值对应 languages 目录中的语言代码。
+  language: zh-CN
+  # 是否启用玩家自行提交和使用的翻译。
   enable-translations: true
+  # 是否在日志中记录重复的方块数据条目。
   log-duplicate-block-entries: true
+  # 玩家处于辐射区域时是否会着火。
   burn-players-when-radioactive: true
+  # /sf give 给予的多余物品无法放入背包时，是否掉落在地上。
   drop-excess-sf-give-items: false
+  # 是否在保存数据前创建备份。
   backup-data: true
+  # 创造模式下破坏 Slimefun 方块时是否掉落方块。
   drop-block-creative: true
 
 guide:
+  # 是否在指南中显示原版物品的配方。
   show-vanilla-recipes: true
+  # 玩家首次加入服务器时是否自动获得 Slimefun 指南。
   receive-on-first-join: true
+  # 搜索指南时是否显示隐藏的物品分类。
   show-hidden-item-groups-in-search: false
 
 researches:
+  # 创造模式玩家是否可以免费解锁研究。
   free-in-creative-mode: true
+  # 解锁研究时是否播放烟花。
   enable-fireworks: true
+  # 是否禁用研究解锁动画。
   disable-learning-animation: false
 
 URID:
+  # URID 信息显示延迟（毫秒）。
   info-delay: 3000
+  # 自定义方块计时任务的间隔（游戏刻）。
   custom-ticker-delay: 10
+  # 是否启用自定义计时任务。
   enable-tickers: true
 
 networks:
+  # 货运网络允许连接的最大节点数。
   max-size: 200
+  # 货运网络更新间隔；0 表示使用默认间隔。
   cargo-ticker-delay: 0
+  # 是否显示货运网络可视化效果。
   enable-visualizer: true
+  # 货运网络超出容量时是否删除多余物品。
   delete-excess-items: false
 
 talismans:
+  # 是否在快捷栏上方显示护身符状态。
   use-actionbar: true
 
 metrics:
+  # 是否自动更新 bStats 指标组件。
   auto-update: true
+  # 是否向 bStats 发送匿名使用统计数据。
   analytics: true
 
+# 研究进度使用的等级名称，按列表顺序从低到高排列。
 research-ranks:
-- Chicken
-- Cow
-- Spider
-- Villager
-- Beginner
-- Clumsy Student
-- Unskilled Student
-- Incompetent Student
-- Student
-- Clumsy Apprentice
-- Apprentice
-- Skilled Apprentice
-- Upcoming Mage
-- Excellent Mage
-- Young Magician
-- Incompetent Magician
-- Common Magician
-- Magician
-- Proficient Magician
-- Skilled Magician
-- Accustomed Magician
-- Great Magician
-- Clumsy Wizard
-- Wizard
-- Common Wizard
-- Skilled Wizard
-- Great Wizard
-- Impressive Wizard
-- Young Master
-- Clumsy Master
-- Upcoming Master
-- Competent Master
-- Master
-- Skilled Master
-- Excellent Master
-- Great Master
-- Proficient Master
-- The Chosen One
+- 鸡
+- 牛
+- 蜘蛛
+- 村民
+- 初学者
+- 笨拙的学生
+- 生疏的学生
+- 不合格的学生
+- 学生
+- 笨拙的学徒
+- 学徒
+- 熟练的学徒
+- 见习法师
+- 优秀法师
+- 年轻魔法师
+- 不合格的魔法师
+- 普通魔法师
+- 魔法师
+- 精通魔法师
+- 熟练魔法师
+- 老练魔法师
+- 伟大的魔法师
+- 笨拙的巫师
+- 巫师
+- 普通巫师
+- 熟练巫师
+- 伟大的巫师
+- 卓越的巫师
+- 年轻的大师
+- 笨拙的大师
+- 见习大师
+- 合格的大师
+- 大师
+- 熟练的大师
+- 优秀的大师
+- 伟大的大师
+- 精通的大师
+- 天选之人
