@@ -1,6 +1,5 @@
 package io.github.bakedlibs.dough.skins;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
@@ -10,12 +9,9 @@ import org.apache.commons.lang.Validate;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
+import org.bukkit.block.Skull;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
-
-import com.mojang.authlib.GameProfile;
-
-import io.github.bakedlibs.dough.skins.nms.PlayerHeadAdapter;
 
 public final class PlayerHead {
 
@@ -65,31 +61,18 @@ public final class PlayerHead {
 
     @ParametersAreNonnullByDefault
     public static void setSkin(Block block, PlayerSkin skin, boolean sendBlockUpdate) {
-        PlayerHeadAdapter adapter = getAdapter();
-
-        if (adapter == null) {
-            throw new UnsupportedOperationException("Cannot update skin texture, no adapter found");
-        }
-
         Material material = block.getType();
 
         if (material != Material.PLAYER_HEAD && material != Material.PLAYER_WALL_HEAD) {
             throw new IllegalArgumentException("Cannot update a head texture. Expected a Player Head, received: " + material);
         }
 
-        try {
-            GameProfile profile = skin.getProfile().asGameProfile();
-            adapter.setGameProfile(block, profile, sendBlockUpdate);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-    }
+        if (block.getState() instanceof Skull skull) {
+            skin.getProfile().apply(skull);
 
-    private static PlayerHeadAdapter getAdapter() {
-        try {
-            return PlayerHeadAdapter.get();
-        } catch (RuntimeException | LinkageError x) {
-            return null;
+            if (sendBlockUpdate) {
+                skull.update(true, false);
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.bukkit.Bukkit;
+import org.bukkit.block.Skull;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
@@ -43,6 +44,14 @@ public final class CustomGameProfile {
         playerTextures.setSkin(skinUrl);
         playerProfile.setTextures(playerTextures);
         meta.setOwnerProfile(playerProfile);
+    }
+
+    void apply(@Nonnull Skull skull) {
+        PlayerProfile playerProfile = Bukkit.createPlayerProfile(uuid, PLAYER_NAME);
+        PlayerTextures playerTextures = playerProfile.getTextures();
+        playerTextures.setSkin(skinUrl);
+        playerProfile.setTextures(playerTextures);
+        skull.setOwnerProfile(playerProfile);
     }
 
     GameProfile asGameProfile() {
